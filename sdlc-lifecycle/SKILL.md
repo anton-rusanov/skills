@@ -45,7 +45,7 @@ Once mode is determined, read the appropriate reference file:
 All coordination happens through files in `.agents/sdlc/tasks/<TASK-ID>/`:
 
 ### status.md
-First line is the status keyword. The orchestrator script polls this file.
+First line is the status keyword. The Orchestrator reads this file after each subagent returns.
 
 ```
 AWAITING_REVIEW
@@ -77,7 +77,7 @@ The implementation plan. Written by Worker, read by Reviewer. Updated by Worker 
 Structured review findings. Written by Reviewer (one per round). Read by the next Reviewer session for continuity — this is how the Reviewer "remembers" previous suggestions across sessions.
 
 ### summary.md
-Written by Reviewer on approval. Contains the git commit message and a summary of what was accomplished. The orchestrator script uses this for the commit.
+Written by Reviewer on approval. Contains the git commit message and a summary of what was accomplished. The Orchestrator uses this for the commit.
 
 ## ROADMAP.md Format
 
@@ -97,24 +97,96 @@ Description of what needs to be done.
 **Status in Session Index table**: `[ ]` = PENDING, `[x]` = DONE
 ```
 
-The orchestrator script and Worker can parse either format. See `references/roadmap-spec.md` for details on both.
+The Orchestrator and Worker can parse either format. See `references/roadmap-spec.md` for details on both.
 
 ## Orchestration
 
-The `scripts/sdlc-orchestrate.ps1` script automates the full cycle across multiple tasks. It:
-1. Reads ROADMAP.md for the next `[PENDING]` task
-2. Launches Worker and Reviewer sessions via `antigravity chat`
-3. Polls status files to detect completion
-4. Handles round transitions and timeouts
-5. Commits on approval, marks BLOCKED on exhaustion
-6. Moves to the next task
+When the user asks to run the full pipeline ("run the pipeline", "work on all roadmap tasks", "implement TASK-003"), the **current agent session acts as the Orchestrator**.
 
-Run it with: `powershell -File .agents/skills/sdlc-lifecycle/scripts/sdlc-orchestrate.ps1`
+### Setup: Parse Options from the User's Prompt
+
+Before starting, extract these settings from the user's prompt. If `TaskFilter` is not specified, **ask the user explicitly** — do not assume "all".
+
+| Option | Required | How to specify | Default |
+|--------|----------|----------------|---------|
+| `TaskFilter` | **Yes — ask if missing** | "run the pipeline for TASK-007, TASK-012" / "implement TASK-003" / "all pending tasks" | — |
+| `MaxRounds` | No | "with up to 2 review rounds" | 3 |
+| `ContinueOnBlocked` | No | "skip blocked tasks" | false (stop on first blocked task) |
+
+### Orchestration Loop
+
+For each task in `TaskFilter` (in ROADMAP.md order when "all"):
+
+**1 — Find and lock the task**
+
+Read `ROADMAP.md`. Locate the task:
+- **Format A (recommended)**: find the heading `### [PENDING] <TASK-ID>: ...`
+- **Format B (session-based)**: find the Session Index table row with `` `[ ]` `` matching the session number
+
+If the task is not `[PENDING]` (Format A) or `` `[ ]` `` (Format B), skip it with a note — don't re-process.
+
+Create `.agents/sdlc/tasks/<TASK-ID>/` if it doesn't exist.
+
+Update ROADMAP.md to mark the task in-progress:
+- **Format A**: replace `[PENDING] <TASK-ID>` with `[IN_PROGRESS] <TASK-ID>`
+- **Format B**: replace the task row's `` `[ ]` `` with `` `[/]` `` in the Session Index table
+
+**2 — Phase 1: Plan**
+
+a. Delegate to a Worker subagent using the **Worker prompt template** below (action: "Create a plan for roadmap task <TASK-ID>").
+
+b. After the subagent returns, read `status.md`. The first line must be `AWAITING_REVIEW`. If it is anything else — go to the **blocked outcome** with reason `WORKER_DID_NOT_SIGNAL`.
+
+c. Run review rounds (up to `MaxRounds`). For each round:
+   - Delegate to a Reviewer subagent using the **Reviewer prompt template** below.
+   - After it returns, read `status.md`:
+     - `DONE` → plan approved; proceed to Phase 2
+     - `NEEDS_FIXES` and round < `MaxRounds` → delegate to Worker (action: "Address review findings for roadmap task <TASK-ID>"); verify `AWAITING_REVIEW` as in step 2b; increment round and re-review
+     - `NEEDS_FIXES` and round == `MaxRounds` → **blocked outcome**, reason `MAX_ROUNDS_EXCEEDED`
+     - `BLOCKED` → **blocked outcome**, reason from `status.md`
+     - Anything else, or unchanged → **blocked outcome**, reason `REVIEWER_DID_NOT_SIGNAL`
+
+**3 — Phase 2: Code**
+
+Same structure as Phase 1. Initial Worker action: "Implement the approved plan for roadmap task <TASK-ID>".
+
+**4 — Commit**
+
+Read `summary.md`. Extract the commit message from the `## Commit Message` section. Run:
+```
+git add -A
+git commit -m "<message>"
+```
+
+Update ROADMAP.md to mark the task done:
+- **Format A**: replace `[IN_PROGRESS] <TASK-ID>` with `[DONE] <TASK-ID>`
+- **Format B**: replace the task row's `` `[/]` `` with `` `[x]` `` in the Session Index table
+
+**Blocked outcome (applies to any step above)**
+
+When any step produces a blocked outcome:
+1. Set `status.md` first line to `BLOCKED` with the reason (if not already set by the subagent)
+2. Update ROADMAP.md:
+   - **Format A**: replace `[IN_PROGRESS] <TASK-ID>` with `[BLOCKED] <TASK-ID>`
+   - **Format B**: revert the task row's `` `[/]` `` back to `` `[ ]` `` (Format B tracks block details in `status.md`, not the ROADMAP)
+3. If `ContinueOnBlocked` is true → continue to next task. Otherwise → stop the pipeline and report which task is blocked and why.
+
+### Subagent Prompt Templates
+
+Use these templates verbatim. Fill in `<TASK-ID>` and `<action>`.
+
+**Worker:**
+> "You are the Worker in the SDLC lifecycle for this project. Read `.agents/skills/sdlc-lifecycle/references/worker.md` for your full protocol. Your task: `<action>` — where action is one of: 'Create a plan for roadmap task <TASK-ID>' | 'Implement the approved plan for roadmap task <TASK-ID>' | 'Address review findings for roadmap task <TASK-ID>'. Artifacts are in `.agents/sdlc/tasks/<TASK-ID>/`."
+
+**Reviewer:**
+> "You are the Reviewer in the SDLC lifecycle for this project. Read `.agents/skills/sdlc-lifecycle/references/reviewer.md` for your full protocol. Review roadmap task <TASK-ID>. Artifacts are in `.agents/sdlc/tasks/<TASK-ID>/`. The `status.md` file should say `AWAITING_REVIEW` — if it does not, report this and stop without writing a review."
+
+Subagents are synchronous: the Orchestrator waits for them to finish before reading `status.md`. No polling is required.
 
 ## Critical Rules
 
 1. **Never skip the plan.** Even for tasks that seem simple, Worker must write `plan.md` before implementing. The plan goes through its own review cycle before any code is written.
-2. **Status file is the handshake.** Always update `status.md` as the LAST action in your session. The orchestrator polls this file — updating it prematurely breaks the pipeline.
+2. **Status file is the handshake.** Always update `status.md` as the LAST action in your session. The Orchestrator reads this file immediately after the subagent returns — updating it prematurely or skipping it breaks the pipeline.
 3. **Clean git state.** Worker must verify `git status` shows a clean working tree before starting. If it doesn't, something went wrong in a previous cycle — set status to `BLOCKED` with reason and stop.
 4. **Reviewer reads ALL previous rounds.** When writing `review-round-3.md`, read both `review-round-1.md` and `review-round-2.md` first. Reference previous findings — "I flagged X in round 1 and it remains unaddressed."
 5. **Worker reads ALL review findings.** When addressing fixes, read all `review-round-N.md` files and the original `plan.md`. Respond to each finding — either fix it or explain why the current approach is better.

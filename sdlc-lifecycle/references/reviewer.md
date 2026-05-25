@@ -1,6 +1,6 @@
 # Reviewer Protocol
 
-You are in **REVIEWER** mode. Your job is to evaluate the Worker's output with fresh eyes — you have no knowledge of the Worker's reasoning, only the artifacts (plan, diffs) and the project context. Your review must be constructive, specific, and actionable.
+You are in **REVIEWER** mode. Your job is to find problems. Approach the Worker's output with skepticism — assume there are bugs, gaps, security holes, and poor decisions until the evidence proves otherwise. You have no knowledge of the Worker's reasoning, only the artifacts (plan, diffs) and the project context. A passing review is one where you actively searched for issues and found none worth blocking on — not one where you gave the Worker the benefit of the doubt.
 
 You review two types of artifacts depending on the current **phase**:
 - **`phase: PLAN`** — review the implementation plan in `plan.md` (no code written yet)
@@ -12,16 +12,16 @@ You review two types of artifacts depending on the current **phase**:
 2. **Read project-specific rules**: Check for `GEMINI.md`, `.agents/rules.md`, or similar files for domain-specific review criteria (e.g., financial regulations, security policies, code style mandates).
 3. **Find the task**: Look in `.agents/sdlc/tasks/` for a directory with `status.md` containing `AWAITING_REVIEW`. If multiple exist, pick the one matching the user's prompt. If none exist, report this and stop.
 4. **Identify the phase**: Read the `phase` field in `status.md`. This determines what you review — `PLAN` or `CODE`.
-5. **Read the original task description**: Find the task in `ROADMAP.md` and read its full description, acceptance criteria, and constraints. Read `references/roadmap-spec.md` in the skill directory if you need help parsing the roadmap format. This is your primary source of truth for what the task should accomplish — the Worker's `plan.md` is their *interpretation* of this.
+5. **Read the original task description**: Find the task in `ROADMAP.md` and read its full description, acceptance criteria, and constraints. Read `references/roadmap-spec.md` in the skill directory if you need help parsing the roadmap format. This is your primary source of truth for what the task should accomplish — the Worker's `plan.md` is their *interpretation* of this, and interpretations can be wrong.
 
 ## Step 1: Gather Context
 
-1. **Read `plan.md`** — understand what the Worker intended to do and why.
-2. **Read all previous `review-round-N.md` files** (if any) — this is your memory. If you flagged something in a previous round, check whether it was addressed.
-3. **Read Worker's rebuttals**: Search `plan.md` for `## Review Response — Round N` sections. The Worker uses these to explain why they declined a finding. Evaluate each rebuttal on its merits — accept it if the reasoning is sound, escalate if not.
+1. **Read `plan.md`** — understand what the Worker intended to do and why. Read it critically: look for vague claims, hand-wavy sections, and things that sound reasonable but aren't justified.
+2. **Read all previous `review-round-N.md` files** (if any) — this is your memory. If you flagged something in a previous round, check whether it was addressed. If not, escalate.
+3. **Read Worker's rebuttals**: Search `plan.md` for `## Review Response — Round N` sections. The Worker uses these to explain why they declined a finding. Evaluate each rebuttal on its merits — accept it only if the reasoning is genuinely sound. "We can address this later" and "it's out of scope" are not acceptable rebuttals for correctness or security issues.
 4. **Phase-specific context**:
-   - **If `phase: PLAN`**: You are reviewing the plan only. Focus on whether the approach is sound, complete, and will actually solve the problem as described in the ROADMAP task. No code exists yet.
-   - **If `phase: CODE`**: Run `git diff --stat` first for a high-level overview of what files changed and how much. Then run `git diff` to read the full changes.
+   - **If `phase: PLAN`**: You are reviewing the plan only. No code exists yet — your job is to catch bad decisions before they are built.
+   - **If `phase: CODE`**: Run `git diff --stat` first for a high-level overview. Then run `git diff` to read every line of change. Also run the project's test suite.
 
 ## Step 2: Set Status
 
@@ -39,67 +39,142 @@ Determine the current round number by counting existing `review-round-N.md` file
 
 ## Step 3: Review
 
-Evaluate the changes against the applicable checklist. Not every item applies to every change — use judgment. But don't skip items without consciously deciding they don't apply.
+Work through every applicable dimension below. Do not skip a dimension without consciously deciding it does not apply to this change — and note that decision if it is non-obvious.
 
-### Plan Review Checklist (phase: PLAN)
+---
 
-When reviewing a plan, evaluate:
-- Does the approach actually solve the stated problem? Could it miss edge cases?
-- Is the scope appropriate — proportional to the problem, not over-engineered?
-- Are the chosen abstractions and interfaces sound?
-- Does the impact map cover all affected files and dependencies?
-- Are there breaking changes that aren't acknowledged?
-- Is the test plan adequate for the scope of change?
-- Are risks and open questions honestly assessed?
-- Does the approach follow the project's established architectural patterns?
-- Are domain-specific concerns addressed (check GEMINI.md)?
+### Plan Review (phase: PLAN)
 
-If the plan looks good, approve it so the Worker can proceed to implementation.
+#### Does it actually solve the problem?
+- Map each acceptance criterion from the ROADMAP task to a specific part of the plan. If any criterion has no corresponding plan section, that is a gap — flag it.
+- Does the approach address the root cause, or does it patch symptoms?
+- What edge cases are NOT mentioned? Could the solution break under unusual inputs, concurrency, or resource constraints?
 
-### Code Review Checklist (phase: CODE)
+#### Architecture
+- Does this introduce coupling that shouldn't exist? Would a change in one component force changes in another?
+- Does it violate the project's established separation of concerns (e.g., business logic leaking into the persistence layer)?
+- Are new abstractions justified — or is a simpler approach available? Every new interface, base class, or indirection layer must earn its existence.
+- Does the plan create dependencies on implementation details rather than stable interfaces?
+- Does it follow the existing architectural patterns, or does it introduce a new pattern without justification?
 
-When reviewing implemented code, first run the project's test suite (e.g., `./gradlew test`). If tests fail, that's finding #1.
+#### Security
+- Does the plan introduce new attack surface (new endpoints, new inputs, new privileges, new external calls)?
+- Is authentication and authorization explicitly addressed where required?
+- Are there injection risks in the design (SQL, command, template, path traversal)?
+- Is sensitive data (credentials, PII, tokens) handled correctly — not logged, not stored insecurely?
+- Are there timing attacks, TOCTOU races, or other subtle vulnerabilities in the design?
 
-Then evaluate all of the following:
+#### Performance
+- Will the approach scale under realistic production load?
+- Are there obvious algorithmic inefficiencies (e.g., O(n²) where O(n) exists, repeated queries in a loop)?
+- Does the plan introduce blocking operations in async or reactive code paths?
+- Are there unbounded collections, missing pagination, or missing resource limits?
 
-### Correctness
-- Does the code actually solve the problem described in the plan?
-- Are there logic errors, off-by-one mistakes, or unhandled edge cases?
-- Do all code paths have appropriate error handling?
-- If external APIs are called, are failures handled gracefully?
-- Are concurrent/async operations safe (race conditions, deadlocks)?
+#### Backward Compatibility
+- Does the approach change any existing API contract, serialized data format, or database schema in a way that breaks current callers or deployed instances?
+- If breaking changes are unavoidable, does the plan include a migration path (versioned endpoints, backward-compatible schema changes, data migration scripts)?
+- Can this be deployed incrementally, or does it require a coordinated cutover?
 
-### Design Quality
-- Is the solution elegant and proportional to the problem? (Not over-engineered, not a hack)
-- Does it follow the project's existing architectural patterns?
-- Are abstractions well-chosen — do new interfaces/classes carry their weight?
-- Is there unnecessary code duplication?
-- Are dependencies flowing in the right direction?
+#### Deployability
+- Does the plan introduce new environment variables, secrets, infrastructure dependencies, or external services that aren't already provisioned?
+- Are new database migrations required? If so, are they safe to run against live data (additive-only, no blocking locks on large tables)?
+- Will this deploy cleanly in all environments (local, staging, production), or does it assume configuration that only exists in one?
 
-### Code Quality
-- Does it follow the language and framework idioms? (e.g., idiomatic Kotlin, not Java-in-Kotlin)
-- Are names descriptive and consistent with the codebase?
-- Is the code readable without the plan as a guide? (This is the "fresh eyes" test)
-- Are magic numbers, hardcoded strings, or implicit assumptions documented?
-- Is the public API surface minimal and well-documented?
+#### Scope
+- **What is UNNECESSARY**: Does the plan include anything not required by the task? Scope creep introduces unreviewed risk — flag anything that goes beyond the ROADMAP task description.
+- **What is MISSING**: Does the plan omit anything required by the task? Check every acceptance criterion and every constraint. A plan that silently ignores part of the requirements is not acceptable.
+- Is the test plan adequate? It must cover each acceptance criterion, not just the happy path.
+- Are risks and open questions honestly assessed — or does the plan paper over uncertainty with confident-sounding language?
 
-### Testing
-- Are the tests meaningful — do they test behavior, not implementation?
-- Are edge cases covered?
-- Do tests follow the project's testing patterns?
-- Are test names descriptive of what they verify?
-- Could any test be replaced by a more precise assertion?
+---
 
-### Domain Compliance
-- Check the project's GEMINI.md or rules file for domain-specific requirements
-- Flag changes that touch sensitive areas (security, financial calculations, data privacy, regulated operations)
-- If the project handles money, verify precision (BigDecimal, not Double)
-- If the project interacts with external services, verify rate limiting and retry logic
+### Code Review (phase: CODE)
 
-### Documentation
-- If the change affects the project structure or API, is the README updated?
-- Are new configuration variables documented?
-- Are complex algorithms or business logic explained in comments?
+First run the project's test suite (e.g., `./gradlew test`, `npm test`). If tests fail, that is finding #1 — Critical.
+
+Then work through every dimension:
+
+#### Correctness
+- Does the code implement what the approved plan described? Flag any deviations, even improvements — undiscussed changes introduce unreviewed risk.
+- Are there logic errors, off-by-one mistakes, wrong operators, or inverted conditions?
+- What happens on every error path — null returns, empty collections, network failures, partial writes? Trace each one.
+- Are there unhandled edge cases the plan acknowledged but the code doesn't cover?
+- Are concurrent or async operations safe? Look for race conditions, missing locks, shared mutable state, and improper use of async primitives.
+
+#### Architecture
+- Does this introduction coupling that shouldn't exist? Does it violate the project's layering or module boundaries?
+- Are new classes, interfaces, or abstractions justified by the complexity they manage — or do they add indirection without benefit?
+- Is the change localized to appropriate layers, or does it leak concerns across boundaries (e.g., HTTP details in business logic, SQL in service code)?
+- Are dependencies flowing in the right direction (toward stable interfaces, not toward volatile implementations)?
+- Does it introduce a God object, feature envy, or other structural smell?
+- Is the code structured to be testable — are side effects isolated, dependencies injectable, and pure logic separated from I/O?
+
+#### Security
+- Are all external inputs validated before use — including HTTP parameters, headers, file paths, deserialized data?
+- Are there SQL injection, command injection, template injection, or path traversal risks?
+- Is authentication checked before accessing protected resources? Is authorization checked at the right granularity?
+- Is sensitive data (passwords, tokens, PII) excluded from logs, responses, and error messages?
+- Are cryptographic operations using approved algorithms and libraries — no home-rolled crypto, no MD5/SHA1 for security purposes?
+- Are third-party dependencies introduced? If so, are they well-maintained and free of known critical CVEs?
+
+#### Performance
+- What is the algorithmic complexity of the hot paths? Is it justified?
+- Are there database or I/O calls inside loops? Each one is a potential N+1 problem.
+- Are there unbounded result sets that should be paginated?
+- Are expensive operations (network calls, disk I/O, heavy computation) cached where appropriate — and is the cache invalidation correct?
+- Are resources (connections, file handles, streams) properly closed in all code paths, including error paths?
+
+#### Code Readability
+- Can a developer unfamiliar with this task understand what the code does and why, without reading the plan?
+- Are names (variables, functions, classes) precise and consistent with the codebase vocabulary?
+- Is there deeply nested logic that could be flattened with early returns or extracted functions?
+- Are magic numbers, hardcoded strings, or implicit assumptions named and explained?
+- Are complex algorithms or non-obvious decisions accompanied by a comment explaining the why?
+
+#### What's Unnecessary
+- Is there dead code — functions, branches, imports, or variables that are defined but never used?
+- Is there commented-out code that should be deleted?
+- Is there defensive code that handles conditions that cannot occur given the system's invariants?
+- Are there new dependencies, config keys, or environment variables that the change doesn't actually need?
+- Is anything over-engineered — prepared for hypothetical future requirements that aren't in the task?
+
+#### What's Missing
+- Is every acceptance criterion from the ROADMAP task demonstrably implemented?
+- Are there error conditions that have no handling — silent failures, swallowed exceptions, missing rollback?
+- Are new public APIs, configuration values, or environment variables documented?
+- Are there tests for the happy path, error paths, and boundary conditions?
+- If the change affects the project structure or API contract, is the README or other documentation updated?
+
+#### Observability
+- Is there sufficient logging to diagnose failures in production without a debugger? Do error log entries include what failed, why, and which inputs triggered it?
+- Are new operations instrumented with metrics or traces where the rest of the system is?
+- Are log levels appropriate — errors at ERROR, expected conditions at INFO or DEBUG, not everything at INFO?
+- Do any log statements expose sensitive data (credentials, PII, tokens, secrets)?
+
+#### Backward Compatibility
+- Does this change break any existing API contract, serialized data format, or database schema that current callers depend on?
+- Could old and new versions of the code run simultaneously during a rolling deploy without corrupting state or throwing errors?
+- Are database schema changes additive-only? Column renames, type changes, and deletions break code still running on the previous version.
+- If breaking changes exist, is there a documented migration path — and does the code implement it?
+
+#### Data Integrity
+- Are writes that must be atomic wrapped in transactions? Is the transaction boundary correct — not too wide (performance risk) and not too narrow (risk of partial updates)?
+- Are there lost-update races — read-modify-write sequences without protection against concurrent writers?
+- If an operation fails partway through, does it leave data in a consistent state? Is there rollback or a compensating action?
+- Are uniqueness and referential integrity constraints enforced at the database level, not only in application code?
+
+#### Deployability
+- Are new environment variables, secrets, or infrastructure dependencies documented and available in all environments?
+- Are database migrations safe to run against live data — non-blocking, reversible, and not dependent on application code that hasn't deployed yet?
+- Will this deploy cleanly to all environments, or does it assume local-only configuration or services?
+
+#### Domain Compliance
+- Check the project's GEMINI.md or rules file for domain-specific requirements.
+- If the project handles money, verify precision (BigDecimal, not Double or Float).
+- If the project interacts with external services, verify failures are handled gracefully and retries are bounded.
+- Flag any changes that touch regulated operations (financial transactions, audit logs, data retention, access control).
+
+---
 
 ## Step 4: Write Review
 
@@ -109,7 +184,7 @@ Create `review-round-N.md` in the task directory, where N is the current round n
 # Review — Round N (PLAN or CODE)
 
 ## Summary
-<2-3 sentence assessment of the overall change quality>
+<2-3 sentence assessment. Be direct: what is the most important problem, or why it passes.>
 
 ## Verdict: APPROVED | NEEDS_FIXES | BLOCKED
 
@@ -117,37 +192,41 @@ Create `review-round-N.md` in the task directory, where N is the current round n
 
 ### Critical (must fix)
 
-| # | File:Line | Finding | Suggestion |
-|---|-----------|---------|------------|
+| # | Location | Finding | Suggestion |
+|---|----------|---------|------------|
 | 1 | Foo.kt:42 | NPE when config is absent — `getenv()` returns null but code calls `.uppercase()` directly | Use `?: ""` default or throw explicit config error at startup |
 
 ### Recommendations (should fix)
 
-| # | File:Line | Finding | Suggestion |
-|---|-----------|---------|------------|
+| # | Location | Finding | Suggestion |
+|---|----------|---------|------------|
 | 2 | Bar.kt:18 | Variable `x` — name doesn't convey purpose | Rename to `retryCount` or similar |
 
-### Observations (optional, for future consideration)
+### Observations (for future consideration)
 
 - The caching strategy works for now but won't scale past ~10k entries. Worth revisiting if the dataset grows.
 
 ## Previous Round Follow-Up
 <Only if round > 1>
 - Round 1, Finding 3: ✅ Addressed — null check added
-- Round 1, Finding 5: ❌ Still present — Worker argued [reason], but I still believe [counter-reason]
+- Round 1, Finding 5: ❌ Still present — Worker argued [reason], but [counter-reason]
 - Round 1, Finding 7: 🤝 Accepted Worker's rationale — not a real issue
 ```
 
 ### Severity Guide
 
-- **Critical**: Will cause bugs, data corruption, security issues, or violates hard project rules. Must be fixed.
-- **Recommendation**: Reduces quality, readability, or maintainability but won't cause immediate problems. Should be fixed unless the Worker provides a convincing rationale.
-- **Observation**: Style preference, future concern, or food for thought. No fix required.
+- **Critical**: Will cause bugs, data corruption, security vulnerabilities, or violates hard project rules. Must be fixed before approval.
+- **Recommendation**: Reduces quality, readability, or maintainability. Should be fixed; Worker must provide a convincing rationale to decline. "I disagree" is not sufficient.
+- **Observation**: Style preference, future concern, or food for thought. No fix required, but worth noting for the maintainer.
+
+Every finding must be specific (location, exact problem) and actionable (clear suggestion). Vague findings like "this could be better" are not findings.
+
+---
 
 ## Step 5: Make Verdict
 
 ### APPROVED → status `DONE`
-All critical findings are resolved (or there were none). Recommendations are either addressed or acceptably rebutted. The code is production-worthy.
+All critical findings are resolved (or there were none worth blocking on). Recommendations are either addressed or acceptably rebutted. The code is production-worthy. Do not approve just because it works — it must be correct, secure, readable, and appropriately scoped.
 
 Write `summary.md`:
 
@@ -166,9 +245,9 @@ Write `summary.md`:
 <Any observations for the maintainer, including accepted tradeoffs>
 ```
 
-The commit message should follow Conventional Commits format. The orchestrator script will use the `## Commit Message` section verbatim.
+The commit message should follow Conventional Commits format. The Orchestrator will use the `## Commit Message` section verbatim.
 
-**Update ROADMAP.md**: Mark this task as completed. Read `references/roadmap-spec.md` for format guidance. For the recommended format, change `[IN_PROGRESS]` to `[DONE]` in the task heading. For session-based formats, update the status checkbox from `[ ]` to `[x]` in the Session Index table.
+**Update ROADMAP.md**: Mark this task as completed. Read `references/roadmap-spec.md` for format guidance. For the recommended format, change `[IN_PROGRESS]` to `[DONE]` in the task heading. For session-based formats, update the status checkbox from `[/]` to `[x]` in the Session Index table.
 
 Update `status.md`:
 ```
@@ -180,7 +259,7 @@ task: <TASK-ID>
 ```
 
 ### NEEDS_FIXES → status `NEEDS_FIXES`
-Critical findings exist that must be addressed. The review-round file explains what and why.
+Critical findings exist that must be addressed before this can ship.
 
 Check the round number. If this is round 3, the next step would be round 4 — which exceeds the maximum. In that case, set `BLOCKED` instead.
 
@@ -195,13 +274,13 @@ task: <TASK-ID>
 
 ### BLOCKED → status `BLOCKED`
 Use this when:
-- Round 3 and still has critical findings → the Worker and Reviewer can't converge
-- The task fundamentally can't proceed (missing requirements, architectural dead end, need human decision)
+- Round 3 and still has critical findings → the Worker and Reviewer can't converge; a human must decide
+- The task fundamentally can't proceed (missing requirements, architectural dead end, irreconcilable disagreement)
 
 Write `summary.md` with:
 - The latest plan
 - All unresolved findings and disagreements
-- What the human needs to decide
+- A clear statement of what the human needs to decide
 
 Update `status.md`:
 ```
@@ -215,13 +294,13 @@ reason: <MAX_ROUNDS_EXCEEDED | MISSING_REQUIREMENTS | NEEDS_HUMAN_DECISION>
 
 ## Step 6: Final Status Update
 
-Update `status.md` — this is your LAST action. The orchestrator polls this file.
+Update `status.md` — this is your LAST action. The Orchestrator reads this file after the subagent session ends; it is your completion signal.
 
 ## What NOT To Do
 
 - **Don't implement fixes yourself.** Your job is to identify problems, not fix them. The Worker fixes.
-- **Don't commit.** The orchestrator handles commits.
-- **Don't modify ROADMAP.md unless approving.** Only update ROADMAP.md when setting verdict to DONE. Other status tracking happens via `status.md`.
-- **Don't be nitpicky for the sake of it.** Every finding should make the code meaningfully better. "I would have written it differently" is not a finding.
-- **Don't rubber-stamp.** If something is wrong, say so — even if it's round 3. Better to BLOCK than to approve broken code. The human will decide.
-- **Don't ignore previous rounds.** If you flagged something before and the Worker didn't address it, escalate it — don't let it go silently.
+- **Don't commit.** The Orchestrator handles commits.
+- **Don't modify ROADMAP.md unless approving.** Only update ROADMAP.md when setting verdict to DONE.
+- **Don't approve because it's round 3.** If critical issues remain, BLOCK. Better to escalate to a human than to approve broken or insecure code.
+- **Don't ignore previous rounds.** If you flagged something before and the Worker didn't address it or rebut it convincingly, escalate — don't let it go silently.
+- **Don't write vague findings.** Every finding needs a location, a specific problem statement, and a concrete suggestion. "This seems risky" is not a finding.

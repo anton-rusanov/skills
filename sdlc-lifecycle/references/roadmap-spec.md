@@ -2,7 +2,7 @@
 
 The `ROADMAP.md` file defines the project's task queue. It lives at the project root and is the single source of truth for what work needs to be done.
 
-The skill supports two ROADMAP formats. Either format works — the orchestrator, Worker, and Reviewer can parse both.
+The skill supports two ROADMAP formats. Either format works — the Orchestrator, Worker, and Reviewer can parse both.
 
 ---
 
@@ -42,13 +42,13 @@ Description...
 
 | Marker | Meaning |
 |--------|---------|
-| `[PENDING]` | Ready to be worked on. The orchestrator picks these up. |
+| `[PENDING]` | Ready to be worked on. The Orchestrator picks these up. |
 | `[IN_PROGRESS]` | A Worker is currently implementing this task. |
 | `[DONE]` | Task completed, reviewed, and committed. |
 | `[BLOCKED]` | Task could not be completed — needs human intervention. |
 
 ### Priority
-One of: `HIGH`, `MEDIUM`, `LOW`. The orchestrator processes tasks in order of appearance, not by priority — so place higher priority tasks first.
+One of: `HIGH`, `MEDIUM`, `LOW`. The Orchestrator processes tasks in order of appearance, not by priority — so place higher priority tasks first.
 
 ---
 
@@ -103,7 +103,7 @@ Tasks are described as "sessions" with a summary table at the top and detailed s
 For blocked tasks, the session stays as `[ ]` — the block is tracked in `.agents/sdlc/tasks/<ID>/status.md`, not in the ROADMAP checkbox.
 
 ### How Agents Find the Task Description
-1. The orchestrator identifies the pending session by finding the first `[ ]` row in the Session Index table
+1. The Orchestrator identifies the pending session by finding the first `[ ]` row in the Session Index table
 2. The task ID is derived as `SESSION-NNN` (e.g., session 2 → `SESSION-002`)
 3. The full task description is in the matching `## Session N: Title` section below the table
 4. Workers and Reviewers should read the **entire session section** (Scope, Notes, any subsections) — not just the title
@@ -132,9 +132,9 @@ The description doesn't need to specify HOW — that's the Worker's job during p
 
 | Actor | What they update |
 |-------|-----------------|
-| Orchestrator script | `[PENDING]` → `[IN_PROGRESS]` (Format A) or `[ ]` → `[/]` (Format B) |
+| Orchestrator | `[PENDING]` → `[IN_PROGRESS]` (Format A) or `[ ]` → `[/]` (Format B) |
 | Reviewer (on approval) | `[IN_PROGRESS]` → `[DONE]` (Format A) or `[/]` → `[x]` (Format B) |
-| Orchestrator script | `[IN_PROGRESS]` → `[BLOCKED]` (Format A only — Format B tracks blocks in status.md) |
+| Orchestrator | `[IN_PROGRESS]` → `[BLOCKED]` (Format A only — Format B tracks blocks in status.md) |
 
 ---
 
