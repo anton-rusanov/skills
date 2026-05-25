@@ -18,4 +18,4 @@ paths:
    - Propose tests. Wait for approval.
    - Red-Green-Refactor cycle (Max 3 iterations).
 
-5. Doc & Audit: Sync README.md if structure or logic changed. Confirm all files in the Impact Map were addressed.
+5. Doc & Audit: Update README.md if structure or logic changed. For non-trivial decisions that required tradeoffs include the rationale for the decision. Confirm all files in the Impact Map were addressed.
