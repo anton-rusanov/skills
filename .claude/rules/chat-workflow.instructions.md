@@ -2,6 +2,7 @@
 description: Assistant workflow for new chats, including request analysis, file discovery, grilling for clarity, and plan approval.
 paths:
  - "README.md"
+ - "ROADMAP.md"
  - "src/**"
 ---
 
