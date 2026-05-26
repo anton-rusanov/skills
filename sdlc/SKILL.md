@@ -1,5 +1,5 @@
 ---
-name: sdlc-lifecycle
+name: sdlc
 description: Orchestrate autonomous software development with separate Worker and Reviewer agent sessions coordinated through filesystem artifacts. Use this skill whenever the user asks to implement a roadmap task, create a plan for a roadmap task, review a roadmap task, address review findings, run the SDLC pipeline, or anything involving plan-then-review development workflows. Trigger on phrases like "work on the next roadmap task", "create a plan for task X", "review the current roadmap task", "address review findings", "run the pipeline", "implement from the roadmap", or "autonomous development". Also use when the user mentions ROADMAP.md, code review rounds, or plan-review cycles.
 ---
 
@@ -150,7 +150,11 @@ c. Run review rounds (up to `MaxRounds`). For each round:
 
 Same structure as Phase 1. Initial Worker action: "Implement the approved plan for roadmap task <TASK-ID>".
 
-**4 — Commit**
+**4 — Doc & Audit**
+
+If structure or logic changed, update `README.md`. For the most critical decisions only, include a brief rationale and link to the Spec (e.g., `[rationale](prd/spec-20260525-xyz.md)`) so decisions can be revisited as context evolves.
+
+**5 — Commit**
 
 Read `summary.md`. Extract the commit message from the `## Commit Message` section. Run:
 ```
@@ -176,10 +180,10 @@ When any step produces a blocked outcome:
 Use these templates verbatim. Fill in `<TASK-ID>` and `<action>`.
 
 **Worker:**
-> "You are the Worker in the SDLC lifecycle for this project. Read `.agents/skills/sdlc-lifecycle/references/worker.md` for your full protocol. Your task: `<action>` — where action is one of: 'Create a plan for roadmap task <TASK-ID>' | 'Implement the approved plan for roadmap task <TASK-ID>' | 'Address review findings for roadmap task <TASK-ID>'. Artifacts are in `.agents/sdlc/tasks/<TASK-ID>/`."
+> "You are the Worker in the SDLC lifecycle for this project. Read `.agents/skills/sdlc/references/worker.md` for your full protocol. Your task: `<action>` — where action is one of: 'Create a plan for roadmap task <TASK-ID>' | 'Implement the approved plan for roadmap task <TASK-ID>' | 'Address review findings for roadmap task <TASK-ID>'. Artifacts are in `.agents/sdlc/tasks/<TASK-ID>/`."
 
 **Reviewer:**
-> "You are the Reviewer in the SDLC lifecycle for this project. Read `.agents/skills/sdlc-lifecycle/references/reviewer.md` for your full protocol. Review roadmap task <TASK-ID>. Artifacts are in `.agents/sdlc/tasks/<TASK-ID>/`. The `status.md` file should say `AWAITING_REVIEW` — if it does not, report this and stop without writing a review."
+> "You are the Reviewer in the SDLC lifecycle for this project. Read `.agents/skills/sdlc/references/reviewer.md` for your full protocol. Review roadmap task <TASK-ID>. Artifacts are in `.agents/sdlc/tasks/<TASK-ID>/`. The `status.md` file should say `AWAITING_REVIEW` — if it does not, report this and stop without writing a review."
 
 Subagents are synchronous: the Orchestrator waits for them to finish before reading `status.md`. No polling is required.
 
