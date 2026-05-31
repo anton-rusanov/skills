@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Agent",
+      "Skill",
+      "Read",
+      "Write",
+      "Edit",
+      "WebSearch",
+      "WebFetch",
+      "Bash"
+    ],
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -f*)",
+      "Bash(git branch -D*)",
+      "Bash(git rebase*)",
+      "Bash(git filter-branch*)",
+      "Bash(git reflog expire*)",
+      "Bash(git update-ref -d*)",
+      "Bash(rm -rf /*)"
+    ],
+    "ask": [
+      "Bash(git push*)"
+    ]
+  },
+  "includeCoAuthoredBy": false
+}
