@@ -245,7 +245,7 @@ Write `summary.md`:
 <Any observations for the maintainer, including accepted tradeoffs>
 ```
 
-The commit message should follow Conventional Commits format. The Orchestrator will use the `## Commit Message` section verbatim.
+The commit message should follow Conventional Commits format. Keep it a **condensed version of the summary below** — capture what changed and why, but aim for under 70 words total (soft target, not a hard limit; don't drop essential context to hit it). The detailed narrative belongs in `## What Changed`, not the commit body. The Orchestrator will use the `## Commit Message` section verbatim.
 
 **Update ROADMAP.md**: Mark this task as completed. Read `references/roadmap-spec.md` for format guidance. For the recommended format, change `[IN_PROGRESS]` to `[DONE]` in the task heading. For session-based formats, update the status checkbox from `[/]` to `[x]` in the Session Index table.
 

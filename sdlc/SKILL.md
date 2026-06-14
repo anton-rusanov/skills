@@ -154,7 +154,7 @@ Documentation is the Worker's responsibility, not the Orchestrator's. When struc
 
 **4 — Commit**
 
-Read `summary.md`. Extract the commit message from the `## Commit Message` section. Run:
+Read `summary.md`. Extract the commit message from the `## Commit Message` section — it is a condensed version of the summary (Conventional Commits format, aiming for under 70 words). Run:
 ```
 git add -A
 git commit -m "<message>"
@@ -163,6 +163,19 @@ git commit -m "<message>"
 Update ROADMAP.md to mark the task done:
 - **Format A**: replace `[IN_PROGRESS] <TASK-ID>` with `[DONE] <TASK-ID>`
 - **Format B**: replace the task row's `` `[/]` `` with `` `[x]` `` in the Session Index table
+
+Amend the commit to include the ROADMAP.md update (`git add -A && git commit --amend --no-edit`), or make it a follow-up commit — either is fine.
+
+**6 — Push & open PR**
+
+Push the task branch and open a PR targeting `master` so the changes can be reviewed before merge — never commit directly to `master`. If the work is on `master`, create a task branch first (e.g. `git switch -c sdlc/<TASK-ID>`).
+
+```
+git push -u origin <branch>
+gh pr create --base master --head <branch> --title "<TASK-ID>: <short title>" --body "<summary>"
+```
+
+Build the PR body from `summary.md` (the `## What Changed` and `## Review Notes` sections). If a PR already exists for the branch, push the new commits instead of creating a duplicate. Report the PR URL to the user.
 
 **Blocked outcome (applies to any step above)**
 
