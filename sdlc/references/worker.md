@@ -8,7 +8,7 @@ You are in **WORKER** mode. Your job is to understand a task, plan an implementa
 
 1. **Ensure `.agents/sdlc/` is gitignored**: Check that `.gitignore` contains `.agents/sdlc/` (or a broader `.agents/` rule). If not, add it. SDLC artifacts (status files, plans, reviews) must not appear in `git status` or get committed alongside code changes.
 2. **Verify clean working tree**: Run `git status --porcelain`. If the output is non-empty, a previous cycle left uncommitted changes. Set status to `BLOCKED` with reason `DIRTY_WORKING_TREE` and stop.
-3. **Read project context**: Read `README.md` (or equivalent) and extract answers to these specific questions before proceeding:
+3. **Read project context**: Start with `README.md` — it is a hub that maps the project and links to deeper references under `docs/` (architecture, configuration, development). Read the README first, then open the linked doc that answers each question below; most of the detail lives in the `docs/` files, not the README itself (e.g. layer rules, patterns, and testing/logging/style conventions are in `docs/DEVELOPMENT.md`). Extract answers to these specific questions before proceeding:
 
    - **Tech stack**: What language, framework, and runtime? (e.g., Kotlin/JVM/Ktor, Node/Express, Python/FastAPI)
    - **Build and test commands**: How do you run the test suite? How do you build? (e.g., `./gradlew test`, `npm test`) — you will need these in Steps 4 and 5.
@@ -113,6 +113,10 @@ Before writing `plan.md`, think through each of these dimensions. You are asking
 - Is anything from the task description missing from your plan? Walk the acceptance criteria list one more time.
 - Does the test plan cover every acceptance criterion — not just the happy path, but error paths and boundary conditions?
 
+**Documentation**
+- Will this change alter project structure, an API contract, configuration, or any behavior the docs describe? If so, the docs are part of this task, not a separate chore. Identify which files need updating: `README.md` is a hub that links to deeper references under `docs/` (e.g. architecture, configuration, development) — update the specific linked file that owns the affected topic, and the README itself only if the structure it summarizes changed.
+- List every doc file you will touch in the Impact Map. The Reviewer checks the diff against this list, so an omitted doc update is a finding waiting to happen.
+
 ---
 
 Write `plan.md` in the task directory using this structure:
@@ -137,10 +141,12 @@ Write `plan.md` in the task directory using this structure:
 <For each acceptance criterion: which part of the approach satisfies it>
 
 ## Impact Map
-| Target File | Change Type | Dependencies | Breaking Changes |
-|-------------|-------------|--------------|------------------|
-| Foo.kt      | MODIFY      | Bar.kt       | None             |
-| Baz.kt      | NEW         | None         | New env var      |
+| Target File           | Change Type | Dependencies | Breaking Changes |
+|-----------------------|-------------|--------------|------------------|
+| Foo.kt                | MODIFY      | Bar.kt       | None             |
+| Baz.kt                | NEW         | None         | New env var      |
+| docs/CONFIGURATION.md | MODIFY      | None         | None             |
+<!-- Include every doc file the change requires: README.md and/or the relevant file under docs/. If no doc change is needed, say so explicitly under Approach so the Reviewer knows it was a decision, not an oversight. -->
 
 ## Test Plan
 <For each acceptance criterion: what test covers it>
@@ -190,8 +196,9 @@ Every line of code you write should trace to one of these sources:
 1. An acceptance criterion from the task
 2. A necessary supporting implementation detail (a helper required by the acceptance criterion)
 3. A test case for the above
+4. A documentation update for structure, logic, configuration, or behavior this task changed (see **Documentation** below)
 
-If you cannot trace a line to one of these, do not write it. This is not about being mechanical — it is about not introducing unreviewed change. The Reviewer will flag any addition that the task description doesn't justify.
+If you cannot trace a line to one of these, do not write it. This is not about being mechanical — it is about not introducing unreviewed change. The Reviewer will flag any addition that the task description doesn't justify. Source 4 is the one carve-out: keeping the docs honest about what you changed is in-scope work, not scope creep — but it is bounded to the parts of the docs your change actually affects.
 
 When you notice a bug or smell in existing code while implementing: do not fix it. Note it in `plan.md` under a `## Observations for Future Tasks` section, and report it to the user at the end of the session.
 
@@ -210,6 +217,14 @@ The Reviewer checks these dimensions. Meet this standard before handoff:
 **No commented-out code**: If you drafted something and decided against it — delete it. Your plan and git history record what you considered. Comments that say `// Tried this, didn't work` add cognitive load to every future reader.
 
 **Observability**: Add logging at the right level. Errors at ERROR. Expected conditions at DEBUG or INFO. Do not log sensitive data (credentials, tokens, PII). Log entries for failures should say what failed, why, and what the relevant input or state was — enough information to diagnose the issue from the log alone, without a debugger.
+
+### Documentation
+
+If your change altered structure, logic, an API contract, configuration, or any behavior the docs describe, update the docs in the same diff — they go through review with the code. You are the right agent to do this: you have the full change in context right now, which nothing downstream does.
+
+- Update the doc files you listed in the Impact Map. `README.md` is a hub that links to deeper references under `docs/` — edit the linked file that owns the topic (e.g. `docs/CONFIGURATION.md` for a new env var, `docs/ARCHITECTURE.md` for a structural change, `docs/DEVELOPMENT.md` for a workflow or convention), and the README itself only if the summary it carries changed.
+- For the most consequential decisions only, add a brief rationale and link to the governing spec (e.g. `[rationale](spec/spec-20260525-xyz.md)`) so the decision can be revisited as context evolves. Do not annotate routine changes — reserve this for choices a future maintainer would otherwise question.
+- Match the existing voice and altitude of the doc you are editing. Do not paste plan text into docs; the plan is an internal artifact, the docs are for readers who never saw it.
 
 ### Handling Review Findings (`NEEDS_FIXES`)
 
@@ -284,6 +299,7 @@ Answer each of these questions. If you cannot answer "yes" to all of them, revis
 - [ ] No lint errors or warnings
 - [ ] Changes are visible in `git diff` (do NOT `git add` or `git commit`)
 - [ ] `plan.md` accurately reflects what was implemented (update if the plan drifted during implementation)
+- [ ] Every doc file listed in the Impact Map is updated in the diff, or its omission is justified — no structure, API, config, or behavior change ships with stale docs
 - [ ] If addressing fixes, each review finding is addressed or rebutted in `plan.md`
 
 Then verify each dimension the Reviewer will check:

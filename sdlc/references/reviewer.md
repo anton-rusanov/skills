@@ -8,7 +8,7 @@ You review two types of artifacts depending on the current **phase**:
 
 ## Step 0: Orient Yourself
 
-1. **Read project context**: Read `README.md` to understand the project's architecture, conventions, and tech stack.
+1. **Read project context**: Read `README.md` to orient — it is a hub that links to deeper references under `docs/` (architecture, configuration, development). Follow the links relevant to the change under review; the detailed architecture, conventions, and tech-stack rules live in the `docs/` files (e.g. `docs/DEVELOPMENT.md`, `docs/ARCHITECTURE.md`), not the README itself.
 2. **Read project-specific rules**: Check for `GEMINI.md`, `.agents/rules.md`, or similar files for domain-specific review criteria (e.g., financial regulations, security policies, code style mandates).
 3. **Find the task**: Look in `.agents/sdlc/tasks/` for a directory with `status.md` containing `AWAITING_REVIEW`. If multiple exist, pick the one matching the user's prompt. If none exist, report this and stop.
 4. **Identify the phase**: Read the `phase` field in `status.md`. This determines what you review — `PLAN` or `CODE`.
@@ -143,7 +143,7 @@ Then work through every dimension:
 - Are there error conditions that have no handling — silent failures, swallowed exceptions, missing rollback?
 - Are new public APIs, configuration values, or environment variables documented?
 - Are there tests for the happy path, error paths, and boundary conditions?
-- If the change affects the project structure or API contract, is the README or other documentation updated?
+- If the change affects project structure, an API contract, configuration, or documented behavior, are the docs updated to match? The Worker owns documentation, so check the diff against the doc files listed in the plan's Impact Map. `README.md` is a hub linking to deeper files under `docs/` (architecture, configuration, development) — verify the file that owns the affected topic was updated, not just the README. A structural or behavioral change that ships with stale docs is a finding, not an observation.
 
 #### Observability
 - Is there sufficient logging to diagnose failures in production without a debugger? Do error log entries include what failed, why, and which inputs triggered it?

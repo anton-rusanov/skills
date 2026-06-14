@@ -150,11 +150,9 @@ c. Run review rounds (up to `MaxRounds`). For each round:
 
 Same structure as Phase 1. Initial Worker action: "Implement the approved plan for roadmap task <TASK-ID>".
 
-**4 — Doc & Audit**
+Documentation is the Worker's responsibility, not the Orchestrator's. When structure or logic changes, the Worker updates the affected docs (`README.md` and the files it links under `docs/`) as part of this phase, and the Reviewer reviews those doc changes alongside the code. The Orchestrator never reads the diff or edits docs itself — this is what keeps its context flat across many tasks in a row.
 
-If structure or logic changed, update `README.md`. For the most critical decisions only, include a brief rationale and link to the Spec (e.g., `[rationale](prd/spec-20260525-xyz.md)`) so decisions can be revisited as context evolves.
-
-**5 — Commit**
+**4 — Commit**
 
 Read `summary.md`. Extract the commit message from the `## Commit Message` section. Run:
 ```
