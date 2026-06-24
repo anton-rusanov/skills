@@ -112,6 +112,9 @@ Before starting, extract these settings from the user's prompt. If `TaskFilter` 
 | `TaskFilter` | **Yes — ask if missing** | "run the pipeline for TASK-007, TASK-012" / "implement TASK-003" / "all pending tasks" | — |
 | `MaxRounds` | No | "with up to 2 review rounds" | 3 |
 | `ContinueOnBlocked` | No | "skip blocked tasks" | false (stop on first blocked task) |
+| `CreatePR` | **Ask once at the start** | "open a PR for this" / "no PR, I'll push" | false (stop at the local commit; the user pushes from their IDE) |
+
+Resolve `CreatePR` **once, up front** (ask the user at the start if the prompt doesn't say) and apply it to every task in the run — never re-ask mid-pipeline.
 
 ### Orchestration Loop
 
@@ -166,16 +169,13 @@ Update ROADMAP.md to mark the task done:
 
 Amend the commit to include the ROADMAP.md update (`git add -A && git commit --amend --no-edit`), or make it a follow-up commit — either is fine.
 
-**6 — Push & open PR**
+**6 — Integrate**
 
-Push the task branch and open a PR targeting `master` so the changes can be reviewed before merge — never commit directly to `master`. If the work is on `master`, create a task branch first (e.g. `git switch -c sdlc/<TASK-ID>`).
+Work on this machine uses a **single canonical local branch**, not a per-task branch — reuse it consistently across tasks (do not invent a `feature/<task>` or `sdlc/<TASK-ID>` name). Never commit directly to `master`.
 
-```
-git push -u origin <branch>
-gh pr create --base master --head <branch> --title "<TASK-ID>: <short title>" --body "<summary>"
-```
-
-Build the PR body from `summary.md` (the `## What Changed` and `## Review Notes` sections). If a PR already exists for the branch, push the new commits instead of creating a duplicate. Report the PR URL to the user.
+Then act on the `CreatePR` decision resolved at the start of the run (do **not** re-ask, and do not push to `master` yourself):
+- **`CreatePR` false (default)** → stop at the local commit and report; the user pushes from their IDE.
+- **`CreatePR` true** → push the canonical branch and open a PR targeting `master`, building the body from `summary.md` (the `## What Changed` and `## Review Notes` sections). If a PR already exists for the branch, push the new commits instead of creating a duplicate. Report the PR URL.
 
 **Blocked outcome (applies to any step above)**
 
