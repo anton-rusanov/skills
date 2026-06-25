@@ -44,6 +44,11 @@ You are in **WORKER** mode. Your job is to understand a task, plan an implementa
 - If dependencies exist, verify each one is `[DONE]` (or `[x]`) in the ROADMAP
 - If any dependency is not done, set status to `BLOCKED` with reason `DEPENDENCY_NOT_MET` and stop — do not attempt to plan or implement
 
+**If addressing spec review findings** (your action is "Address spec review findings", phase `SPEC`):
+- Read all `spec-review-round-N.md` files in the task directory; the highest N holds the latest findings, but read the earlier rounds too for context.
+- Read the product spec under `spec/` that the task references — this is the file you will edit. No `plan.md` exists yet and you write none in this phase.
+- Set `status.md` to `IN_PROGRESS` with `phase: SPEC`, then jump to **Step 3.5: Address Spec Findings** below. Do not plan or write code.
+
 **If addressing review findings** (task status is `NEEDS_FIXES`):
 - Read the task directory to find all `review-round-N.md` files
 - The file with the highest N in its name (e.g., `review-round-3.md` over `review-round-1.md`) contains the latest findings — read that one for the issues to address
@@ -159,6 +164,22 @@ Write `plan.md` in the task directory using this structure:
 ```
 
 The plan should be detailed enough that a Reviewer who has not seen your reasoning process can evaluate whether the approach is sound. A good plan is 50–150 lines. Under 50 lines usually means something is under-specified; over 150 lines usually means you're writing implementation details that belong in code comments, not the plan.
+
+## Step 3.5: Address Spec Findings (phase: SPEC only)
+
+You reach this step only when your action is "Address spec review findings." Your job is to close the gaps the Reviewer found in the product spec — not to plan, design, or write code. The output is an improved spec file under `spec/`, left unsubmitted (no commit) for the Reviewer to re-check.
+
+**First, apply the human's decisions.** Check the latest `spec-review-round-N.md` for an `## Open Decisions` section. Any row with a filled-in `Resolution` is a product/intent call the user already made via the Orchestrator's decision gate — treat it as ground truth. Write each resolution into the spec as a definite requirement. Do **not** re-litigate a resolved decision or substitute your own preference.
+
+Then work through the remaining findings systematically:
+
+**Path A — Fix it**: Edit the spec to resolve the gap. Make ambiguous requirements precise, reconcile contradictions, add the missing requirement, or turn a vague acceptance criterion into a verifiable one. Match the spec's existing voice and structure — keep editing the spec a reader will use, not pasting review text into it.
+
+**Path B — Rebut it**: If a finding is wrong or the current wording is already correct, add a `## Spec Review Response — Round N` section to the **spec file** explaining why. The same rebuttal bar as code review applies: substantive reasoning only. "I disagree" and "out of scope" are not acceptable for genuine ambiguities, contradictions, or unverifiable criteria — those must be fixed.
+
+**Record what you guessed.** For gaps you closed by inference rather than an explicit resolution — where a different reading was plausible — add a one-line entry to an `## Assumptions` section in the spec stating what you assumed and why. This is the user's cheap second catch: they see, in the spec, exactly which calls you made on their behalf without having to be interrupted for each one.
+
+Keep the spec focused on *what* and *why* — do not let it drift into implementation detail (the *how* belongs in `plan.md`, which comes later). When the spec is sound, go to **Step 6** and set status to `AWAITING_REVIEW` with `phase: SPEC`. Do not advance to Step 4.
 
 ## Step 4: Implement
 
@@ -334,16 +355,17 @@ Write `status.md` — this is your LAST action. The Orchestrator reads this file
 
 ```
 AWAITING_REVIEW
-phase: <PLAN or CODE>
+phase: <SPEC, PLAN, or CODE>
 round: <current round number>
 updated: <current ISO timestamp>
 task: <TASK-ID>
 ```
 
+Set `phase: SPEC` when submitting the revised product spec for review (Step 3.5).
 Set `phase: PLAN` when submitting the plan for review (before implementation).
 Set `phase: CODE` when submitting implemented code for review.
 
-The round number is determined by how many `review-round-N.md` files exist in the task directory:
+The round number is determined by how many review files exist for the current phase — `spec-review-round-N.md` files when `phase: SPEC`, otherwise `review-round-N.md` files:
 - First implementation: round 1
 - After first review: round 2
 - After second review: round 3

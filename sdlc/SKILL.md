@@ -5,7 +5,7 @@ description: Orchestrate autonomous software development with separate Worker an
 
 # SDLC Lifecycle
 
-A development lifecycle skill that separates **planning**, **implementation**, and **review** into distinct agent sessions, coordinated through filesystem artifacts. The lifecycle has two review gates: the Reviewer first critiques the **plan** (before any code is written), then critiques the **code** (after implementation). Each session has fresh context — the Reviewer never sees the Worker's reasoning, only the artifacts and diffs. This mirrors real engineering workflows where code must stand on its own without the author's internal monologue.
+A development lifecycle skill that separates **planning**, **implementation**, and **review** into distinct agent sessions, coordinated through filesystem artifacts. The lifecycle has up to three review gates: when the task is governed by a **product spec**, the Reviewer first pokes holes in that spec (before any planning) and the Worker iterates on it to close the gaps; then the Reviewer critiques the **plan** (before any code is written); then critiques the **code** (after implementation). Each session has fresh context — the Reviewer never sees the Worker's reasoning, only the artifacts and diffs. This mirrors real engineering workflows where code must stand on its own without the author's internal monologue.
 
 ## How It Works
 
@@ -56,6 +56,7 @@ task: TASK-003
 ```
 
 The `phase` field tells the Reviewer **what** to review:
+- `SPEC` — poke holes in the governing product spec under `spec/` (no plan or code written yet)
 - `PLAN` — review `plan.md` only (no code written yet)
 - `CODE` — review `git diff` against the approved plan
 
@@ -69,6 +70,9 @@ The `phase` field tells the Reviewer **what** to review:
 | `NEEDS_FIXES` | Reviewer found issues, Worker needs to address | Reviewer |
 | `DONE` | Reviewer approved the changes | Reviewer |
 | `BLOCKED` | 3 review rounds exhausted or unresolvable issue | Reviewer |
+
+### spec-review-round-N.md
+Structured findings against the governing product spec (one per round), written by the Reviewer during the `SPEC` phase. The Worker reads these and edits the spec file under `spec/` to close the gaps. Kept separate from `review-round-N.md` so spec-phase rounds don't inflate the plan/code review counters.
 
 ### plan.md
 The implementation plan. Written by Worker, read by Reviewer. Updated by Worker when addressing fixes.
@@ -134,6 +138,30 @@ Update ROADMAP.md to mark the task in-progress:
 - **Format A**: replace `[PENDING] <TASK-ID>` with `[IN_PROGRESS] <TASK-ID>`
 - **Format B**: replace the task row's `` `[ ]` `` with `` `[/]` `` in the Session Index table
 
+**1.5 — Phase 0: Spec Review (only when a product spec governs the task)**
+
+Determine whether a product spec applies: the user's prompt references a spec file (e.g. `spec/spec-*.md`), or the ROADMAP task links one. **If no spec applies, skip this phase entirely** and go straight to Phase 1.
+
+If a spec applies, harden it before anyone plans against it:
+
+a. Delegate to a Reviewer subagent using the **Reviewer prompt template** below, with `phase: SPEC` (action: "Poke holes in the product spec for roadmap task <TASK-ID>"). The Reviewer hunts for ambiguity, internal contradictions, missing requirements, and acceptance criteria that can't be verified, then writes `spec-review-round-N.md` and a verdict.
+
+b. After it returns, read `status.md`:
+   - `DONE` → spec is sound; proceed to Phase 1
+   - `NEEDS_FIXES` and round < `MaxRounds` → **run the decision gate (step c), then** delegate to Worker (action: "Address spec review findings for roadmap task <TASK-ID>"); the Worker edits the spec file under `spec/` to close the gaps, leaving it unsubmitted. Verify `AWAITING_REVIEW` as in step 2b; increment round and re-review.
+   - `NEEDS_FIXES` and round == `MaxRounds` → **blocked outcome**, reason `MAX_ROUNDS_EXCEEDED`
+   - `BLOCKED` → **blocked outcome**, reason from `status.md`
+   - Anything else, or unchanged → **blocked outcome**, reason `REVIEWER_DID_NOT_SIGNAL`
+
+c. **Decision gate — the one place the human is consulted.** Read the latest `spec-review-round-N.md` for an `## Open Decisions` section. This holds the findings the Reviewer judged to be genuine product/intent decisions only the user can make (it triages those away from gaps the Worker can close from the codebase and conventions). The Reviewer caps these at ~5; if it surfaced more, the spec is too vague to automate — go to the **blocked outcome** with reason `SPEC_TOO_AMBIGUOUS` instead.
+
+   - If there is **no `## Open Decisions` section** (or it is empty), skip straight to the Worker delegation in step b — no need to interrupt the user.
+   - If there **are** Open Decisions, present them to the user **in a single batch** using `AskUserQuestion` — one question per decision, each with the Reviewer's options and its **recommended default listed first and marked "(Recommended)"**, so the user can confirm defaults in seconds. Then write each chosen answer into the `Resolution` column of that decision's row in the `spec-review-round-N.md` file. The Worker reads these resolutions when it edits the spec.
+
+   This is the **only** human checkpoint in the pipeline — the rest of Phase 0, plus Phases 1 and 2, run autonomously.
+
+The spec-phase rounds are counted independently (via `spec-review-round-N.md`) and do not consume the Phase 1 or Phase 2 round budget.
+
 **2 — Phase 1: Plan**
 
 a. Delegate to a Worker subagent using the **Worker prompt template** below (action: "Create a plan for roadmap task <TASK-ID>").
@@ -191,10 +219,10 @@ When any step produces a blocked outcome:
 Use these templates verbatim. Fill in `<TASK-ID>` and `<action>`.
 
 **Worker:**
-> "You are the Worker in the SDLC lifecycle for this project. Read `.agents/skills/sdlc/references/worker.md` for your full protocol. Your task: `<action>` — where action is one of: 'Create a plan for roadmap task <TASK-ID>' | 'Implement the approved plan for roadmap task <TASK-ID>' | 'Address review findings for roadmap task <TASK-ID>'. Artifacts are in `.agents/sdlc/tasks/<TASK-ID>/`."
+> "You are the Worker in the SDLC lifecycle for this project. Read `.agents/skills/sdlc/references/worker.md` for your full protocol. Your task: `<action>` — where action is one of: 'Address spec review findings for roadmap task <TASK-ID>' | 'Create a plan for roadmap task <TASK-ID>' | 'Implement the approved plan for roadmap task <TASK-ID>' | 'Address review findings for roadmap task <TASK-ID>'. Artifacts are in `.agents/sdlc/tasks/<TASK-ID>/`."
 
 **Reviewer:**
-> "You are the Reviewer in the SDLC lifecycle for this project. Read `.agents/skills/sdlc/references/reviewer.md` for your full protocol. Review roadmap task <TASK-ID>. Artifacts are in `.agents/sdlc/tasks/<TASK-ID>/`. The `status.md` file should say `AWAITING_REVIEW` — if it does not, report this and stop without writing a review."
+> "You are the Reviewer in the SDLC lifecycle for this project. Read `.agents/skills/sdlc/references/reviewer.md` for your full protocol. Review roadmap task <TASK-ID> at the phase named in `status.md` (`SPEC`, `PLAN`, or `CODE`). Artifacts are in `.agents/sdlc/tasks/<TASK-ID>/`. The `status.md` file should say `AWAITING_REVIEW` — if it does not, report this and stop without writing a review."
 
 Subagents are synchronous: the Orchestrator waits for them to finish before reading `status.md`. No polling is required.
 
