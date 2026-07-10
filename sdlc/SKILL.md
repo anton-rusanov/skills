@@ -185,6 +185,8 @@ Documentation is the Worker's responsibility, not the Orchestrator's. When struc
 
 **4 — Commit**
 
+The Reviewer runs `/verify` before approving (see `reviewer.md`), so a `DONE` verdict already means the change was verified against its real runtime surface — and since the code is frozen between approval and this step, do **not** re-run it here. Instead, confirm `summary.md` has a `## Verification` section recording a green `/verify`. If that evidence is missing, the approval is incomplete: do not commit — report it and re-delegate the CODE review rather than committing an unverified change.
+
 Read `summary.md`. Extract the commit message from the `## Commit Message` section — it is a condensed version of the summary (Conventional Commits format, aiming for under 70 words). Run:
 ```
 git add -A
