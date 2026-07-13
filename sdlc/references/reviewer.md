@@ -199,6 +199,7 @@ Then work through every dimension:
 - Are there error conditions that have no handling — silent failures, swallowed exceptions, missing rollback?
 - Are new public APIs, configuration values, or environment variables documented?
 - Are there tests for the happy path, error paths, and boundary conditions?
+- **Did the implementation drop any test the approved plan or spec committed to?** Cross-check every acceptance criterion and every explicitly promised test against the diff. A committed test that is missing is a **Critical** finding (see Severity Guide) — block on it even if the Worker argues the behavior is covered by composing separately-tested pieces.
 - If the change affects project structure, an API contract, configuration, or documented behavior, are the docs updated to match? The Worker owns documentation, so check the diff against the doc files listed in the plan's Impact Map. `README.md` is a hub linking to deeper files under `docs/` (architecture, configuration, development) — verify the file that owns the affected topic was updated, not just the README. A structural or behavioral change that ships with stale docs is a finding, not an observation.
 
 #### Observability
@@ -271,7 +272,7 @@ Create the review file in the task directory, where N is the current round numbe
 
 ### Severity Guide
 
-- **Critical**: Will cause bugs, data corruption, security vulnerabilities, or violates hard project rules. Must be fixed before approval.
+- **Critical**: Will cause bugs, data corruption, security vulnerabilities, or violates hard project rules. Must be fixed before approval. **A test the approved plan or spec committed to (e.g. a named acceptance criterion) that the implementation omitted is always Critical — never a Recommendation.** "The isolated pieces are tested and compose", "covered transitively", or "the behavior is correct so the test is redundant" are NOT acceptable rebuttals: a committed test is a contract, and untested integrated behavior is exactly where latent bugs hide. Block until the committed test exists and passes.
 - **Recommendation**: Reduces quality, readability, or maintainability. Should be fixed; Worker must provide a convincing rationale to decline. "I disagree" is not sufficient.
 - **Observation**: Style preference, future concern, or food for thought. No fix required, but worth noting for the maintainer.
 
