@@ -146,7 +146,7 @@ Omit the section entirely when every gap is Worker-closable — do not invent de
 
 ### Code Review (phase: CODE)
 
-First run the project's test suite (e.g., `./gradlew test`, `npm test`). If tests fail, that is finding #1 — Critical.
+First, prove the change actually runs — do not take the plan's "tests pass" on faith; you are the independent check, so run it yourself. Run every test suite the change can affect, not just the changed module's unit tests: a change in one module can break another module's integration or e2e suite (e.g., `./gradlew test`, `npm test` for each affected module). Then run `/verify` to exercise the change through its real runtime surface. **A green `/verify` is a precondition for approval** — any failure here is finding #1, Critical. When you approve, record the result in `summary.md` under `## Verification` (what you ran and its outcome); the Orchestrator refuses to commit without it.
 
 Then work through every dimension:
 
@@ -299,6 +299,12 @@ For the `CODE` phase, write `summary.md`:
 
 ## What Changed
 <Bullet list of key changes>
+
+## Verification
+<What you ran to prove the change works and the outcome — the full test suites
+for each affected module and `/verify`, e.g. "backend ./gradlew test: pass;
+frontend npm test: pass; /verify (e2e): 5 passed". This must show a green
+`/verify`; the Orchestrator will not commit without it.>
 
 ## Review Notes
 <Any observations for the maintainer, including accepted tradeoffs>

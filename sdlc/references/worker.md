@@ -208,8 +208,8 @@ Write the implementation. Resist the temptation to write more than the tests req
 **Step D — Refactor**
 With passing tests as a safety net, clean up the implementation. Apply naming, extract functions, remove duplication. Run the tests again after each refactor — if they break, you changed behavior, not just structure.
 
-**Step E — Confirm all tests pass**
-Run the full test suite, not just your new tests. `./gradlew test`, `npm test`, or equivalent. Zero failures is the requirement. One failure anywhere is a blocker.
+**Step E — Confirm all tests pass, and verify end-to-end**
+Run every test suite your change can affect — not just your new tests, and not just the changed module's unit tests. A change in one module can break another module's integration or e2e suite; run those too. `./gradlew test`, `npm test`, or equivalent for each affected module. Then run `/verify` to exercise the change through its real runtime surface. Zero failures is the requirement; one failure anywhere is a blocker.
 
 ### Scope Discipline
 
