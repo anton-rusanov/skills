@@ -69,6 +69,10 @@ Then work through every dimension.
 - Error conditions with no handling — silent failures, swallowed exceptions, missing rollback?
 - Are new public APIs, configuration values, and env vars documented?
 - Tests for the happy path, the error paths, **and** the boundaries?
+- **Did the implementation drop any test the approved plan or spec committed to?** Cross-check every
+  acceptance criterion and every explicitly promised test against the diff. A committed test that is
+  missing is a **Critical** finding — block on it even if the Worker argues the behavior is covered
+  by composing separately-tested pieces.
 - If the change affects structure, an API contract, configuration, or documented behavior, are the
   docs updated? Check the diff against the doc files in the plan's Impact Map. `README.md` is a hub
   linking deeper docs — verify the file that *owns* the affected topic was updated, not just the

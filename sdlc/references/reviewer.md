@@ -101,6 +101,12 @@ project rule; must be fixed before approval. *Recommendation* — reduces qualit
 maintainability; the Worker needs a convincing rationale to decline. *Observation* — style
 preference or future concern; no fix required.
 
+**A test the approved plan or spec committed to (e.g. a named acceptance criterion) that the
+implementation omitted is always Critical — never a Recommendation.** "The isolated pieces are
+tested and compose", "covered transitively", and "the behavior is correct so the test is redundant"
+are not acceptable rebuttals: a committed test is a contract, and untested integrated behavior is
+exactly where latent bugs hide. Block until the committed test exists and passes.
+
 Every finding must be **specific** (location, exact problem) and **actionable** (concrete
 suggestion). "This could be better" is not a finding.
 
