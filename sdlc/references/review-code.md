@@ -7,7 +7,7 @@ suite): `./gradlew test`, `npm test`, … per affected module. Then run `/verify
 change through its real runtime surface.
 
 **A green `/verify` is a precondition for approval** — any failure here is finding #1, Critical.
-When you approve, record what you ran and its outcome in `summary.md` under `## Verification`; the
+When you approve, record what you ran and its outcome in `handoff.md` under `## Verification`; the
 Orchestrator refuses to commit without it.
 
 Then work through every dimension.

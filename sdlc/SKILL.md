@@ -36,7 +36,7 @@ Everything lives in `.agents/sdlc/tasks/<TASK-ID>/` (gitignored):
 | `spec-review-round-N.md` | Reviewer | Findings against the product spec (SPEC phase). Kept separate so spec rounds don't inflate the plan/code counters. |
 | `plan.md` | Worker | The implementation plan; also holds the Worker's rebuttals. |
 | `review-round-N.md` | Reviewer | Plan/code findings, one per round. The next Reviewer session reads these — this is how it "remembers". |
-| `summary.md` | Reviewer | Written on CODE approval: commit message, what changed, verification evidence. |
+| `handoff.md` | Reviewer | The Reviewer's terminal artifact. On CODE approval: commit message, what changed, verification evidence. On `BLOCKED`: the unresolved decisions for the human. |
 
 `status.md` format — the Orchestrator reads it after every subagent returns:
 
@@ -143,11 +143,10 @@ yourself** — that is what keeps your context flat across many tasks in a row.
 
 **5 — Commit.** The Reviewer runs `/verify` before approving, so `DONE` already means the change was
 exercised against its real runtime surface — and the code is frozen between approval and here, so
-do **not** re-run it. Instead confirm `summary.md` has a `## Verification` section recording a green
+do **not** re-run it. Instead confirm `handoff.md` has a `## Verification` section recording a green
 `/verify`. If that evidence is missing, the approval is incomplete: do not commit — report it and
-re-delegate the CODE review. (If the Reviewer reports it could not write `summary.md` — e.g. the
-harness blocks subagent writes to that path — transcribe the summary it returned into
-`summary.md` yourself, then continue.)
+re-delegate the CODE review. (If the Reviewer reports it could not write `handoff.md`, transcribe
+the content it returned into `handoff.md` yourself, then continue.)
 
 Take the commit message verbatim from the `## Commit Message` section and run:
 
@@ -165,7 +164,7 @@ where the PR flow is retired), committing there is correct; what is never automa
 Act on the `CreatePR` decision resolved at the start (do not re-ask):
 - **false (default)** → stop at the local commit and report. The user reviews and pushes.
 - **true** → push the branch and open a PR targeting the integration branch, building the body from
-  `summary.md` (`## What Changed`, `## Review Notes`). If a PR already exists, push to it instead of
+  `handoff.md` (`## What Changed`, `## Review Notes`). If a PR already exists, push to it instead of
   opening a duplicate. Report the URL.
 
 **Blocked outcome (any step).** Set `status.md`'s first line to `BLOCKED` with the reason if the

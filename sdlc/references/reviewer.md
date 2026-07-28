@@ -118,14 +118,14 @@ acceptably rebutted, and the artifact is production-worthy for its phase: a `SPE
 consistent, complete, and verifiable; a `PLAN` is sound; `CODE` is correct, secure, readable, and
 scoped. Do not approve because it reads fine — you must have actively hunted for problems.
 
-`summary.md` and ROADMAP.md are written **only when approving `phase: CODE`** — that is the single
+`handoff.md` and ROADMAP.md are written **only when approving `phase: CODE`** — that is the single
 point where the task is actually complete. Approving `SPEC` or `PLAN` just advances the pipeline:
 set `status.md` to `DONE` and stop.
 
-For `CODE`, write `summary.md`:
+For `CODE`, write `handoff.md`:
 
 ```markdown
-# Task Summary: <TASK-ID>
+# Task Handoff: <TASK-ID>
 
 ## Commit Message
 <type>(<scope>): <description>
@@ -149,8 +149,8 @@ The commit message follows Conventional Commits and is a **condensed** version o
 what changed and why, aiming under 70 words (soft target; don't drop essential context to hit it).
 The narrative belongs in `## What Changed`. The Orchestrator uses the section verbatim.
 
-If the harness refuses your write to `summary.md`, do not silently skip it: put the complete
-`summary.md` content in your final message so the Orchestrator can transcribe it, and say that is
+If the harness refuses your write to `handoff.md`, do not silently skip it: put the complete
+`handoff.md` content in your final message so the Orchestrator can transcribe it, and say that is
 what you are doing.
 
 Then mark the task `[DONE]` in `ROADMAP.md` (CODE phase only) and set `status.md`:
@@ -173,7 +173,7 @@ fundamentally can't proceed (missing requirements, architectural dead end, irrec
 disagreement); or `phase: SPEC` needs more than 5 genuine product decisions
 (`SPEC_TOO_AMBIGUOUS` — too vague to automate, the human should reshape the spec).
 
-Write `summary.md` with the latest plan, all unresolved findings and disagreements, and a clear
+Write `handoff.md` with the latest plan, all unresolved findings and disagreements, and a clear
 statement of what the human must decide. Then `status.md`:
 
 ```
