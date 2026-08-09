@@ -35,6 +35,7 @@ Everything lives in `.agents/sdlc/tasks/<TASK-ID>/` (gitignored):
 | `status.md` | both | The handshake. First line is the status keyword. |
 | `spec-review-round-N.md` | Reviewer | Findings against the product spec (SPEC phase). Kept separate so spec rounds don't inflate the plan/code counters. |
 | `plan.md` | Worker | The implementation plan; also holds the Worker's rebuttals. |
+| `progress.md` | Worker | Append-only checkpoint log. Lets a Worker killed mid-flight be replaced without redoing — or blindly trusting — its partial work. |
 | `review-round-N.md` | Reviewer | Plan/code findings, one per round. The next Reviewer session reads these — this is how it "remembers". |
 | `handoff.md` | Reviewer | The Reviewer's terminal artifact. On CODE approval: commit message, what changed, verification evidence. On `BLOCKED`: the unresolved decisions for the human. |
 
@@ -46,7 +47,16 @@ phase: PLAN
 round: 1
 updated: 2026-04-27T21:43:00
 task: TASK-003
+dispatched: REVIEWER — Review the plan for roadmap task TASK-003
+dispatched_at: 2026-04-27T21:44:10
 ```
+
+The first five keys are the subagent's handshake, and it rewrites the whole file as its last
+action. The two `dispatched*` keys are the **Orchestrator's** in-flight marker: it appends them
+immediately before delegating and never touches the first line. Because a subagent rewrites the
+file, finishing clears them for free — so a `dispatched:` marker that is *still there* means that
+subagent **died mid-flight** and nothing it learned survives. Workers and Reviewers ignore both
+keys.
 
 `phase` tells the Reviewer **what** to review: `SPEC` (the governing spec under `spec/`, no plan or
 code yet), `PLAN` (`plan.md`, no code yet), `CODE` (`git diff` against the approved plan).
@@ -86,6 +96,34 @@ Markers: `[PENDING]` → `[IN_PROGRESS]` → `[DONE]`, or `[BLOCKED]`. Anything 
 
 Resolve `CreatePR` **once, up front** and apply it to every task in the run — never re-ask
 mid-pipeline.
+
+### Setup: arm the watchdog
+
+Once the options are resolved and before the first task, arm a self-nudge so a stalled run restarts
+itself instead of waiting for a human. `CronCreate` and `CronDelete` may be deferred tools — load
+them with `ToolSearch("select:CronCreate,CronDelete")` first if they are not already available.
+
+```
+CronCreate({
+  cron: "*/17 * * * *",
+  recurring: true,
+  prompt: "SDLC watchdog for <TaskFilter>. If a subagent is currently running, or the run is
+           finished or blocked awaiting the user, do nothing and say nothing. Otherwise the run
+           stalled: follow 'Resuming an interrupted run' in the sdlc skill and continue."
+})
+```
+
+Why this works: cron jobs fire **only while the session is idle**. A healthy pipeline sits inside
+an `Agent` call almost continuously, so the watchdog stays silent. When a session limit or a crash
+ends the turn, the session goes idle and the watchdog fires. If the limit has not reset yet, that
+fire fails harmlessly and the recurring job stays armed — the first fire after the reset picks the
+run back up. An off-minute (`*/17`, not `*/15`) keeps it off the clustered :00 and :30 marks.
+
+Two limits to state to the user when you arm it: the job lives only in this session's memory, so
+quitting Claude Code loses it, and recurring jobs auto-expire after 7 days.
+
+**`CronDelete` it when the run ends** — completed, blocked, or handed back. A watchdog left armed
+after the pipeline finishes will keep waking an idle session for a week.
 
 ### Loop
 
@@ -131,6 +169,12 @@ task <TASK-ID>". Documentation is the Worker's job, not yours: it updates the af
 of this phase and the Reviewer reviews them with the code. **Never read the diff or edit docs
 yourself** — that is what keeps your context flat across many tasks in a row.
 
+**Arming a delegation.** Before *every* `Agent` call — Worker or Reviewer, every phase, including
+re-dispatches — append `dispatched:` and `dispatched_at:` to `status.md`. Use `Edit`, not `Write`:
+the first line belongs to whoever set it, and overwriting it with `IN_PROGRESS` would make the next
+Reviewer refuse to review. One edit per delegation is what makes an interrupted run recoverable;
+skip it and a dead subagent becomes invisible to whoever wakes up next.
+
 **Round loop (each phase).** After every subagent returns, read `status.md`:
 - Worker returned anything but `AWAITING_REVIEW` → **blocked**, reason `WORKER_DID_NOT_SIGNAL`.
 - Delegate to a **Reviewer**, then read `status.md` again:
@@ -167,10 +211,53 @@ Act on the `CreatePR` decision resolved at the start (do not re-ask):
   `handoff.md` (`## What Changed`, `## Review Notes`). If a PR already exists, push to it instead of
   opening a duplicate. Report the URL.
 
+**7 — Disarm.** When the last task in `TaskFilter` is done, `CronDelete` the watchdog before you
+report.
+
 **Blocked outcome (any step).** Set `status.md`'s first line to `BLOCKED` with the reason if the
 subagent didn't, revert the ROADMAP heading to `[PENDING]` (block details live in `status.md`), then
-continue to the next task if `ContinueOnBlocked` is true — otherwise stop and report which task is
-blocked and why.
+continue to the next task if `ContinueOnBlocked` is true — otherwise `CronDelete` the watchdog, stop,
+and report which task is blocked and why. The same applies at the Phase 0 decision gate: if you are
+stopping to wait on the user, disarm first — the watchdog exists to restart stalled *work*, not to
+nag someone who owes you an answer.
+
+### Resuming an interrupted run
+
+A run can stop dead at any point. The most common cause is an API session limit, and it does **not**
+just kill the subagent — the error comes back as that subagent's tool result and then your own next
+request fails too, ending the turn. The session sits idle until something restarts it. Crashes,
+upgrades and machine restarts do the same thing.
+
+So whenever you wake up on a task that already has a `.agents/sdlc/tasks/<TASK-ID>/` directory —
+whether from the watchdog, a user's "continue", or a fresh session — **do not assume your context
+reflects reality, and do not assume you dispatched what you think you dispatched.** Rebuild from
+disk, in this order:
+
+1. **`orchestrator-notes.md`** — binding user directives, the authorized round budget, and the
+   interruption log. Read it first; it is the only place earlier sessions' decisions survive.
+2. **`status.md`** — the phase, the round, and whether a `dispatched:` marker is still present.
+3. **`git status --porcelain`** in the umbrella and in every submodule.
+
+Then classify:
+
+| What you find | What it means | What to do |
+|---|---|---|
+| No `dispatched:` marker | The last subagent finished cleanly | Continue the round loop from `status.md` |
+| `dispatched:` present | That subagent **died mid-flight** — its reasoning is gone, its work is partial and unreviewed | Assess the tree, log it, re-dispatch the same action |
+
+**Assessing the tree after a death.** You cannot tell finished work from abandoned work by looking
+at it. `progress.md` is the successor's only trustworthy record of what actually landed. Anything
+the tree contains that `progress.md` does not account for has **unknown provenance** — a file may
+be a real artifact or a half-written guess. Say so explicitly in `orchestrator-notes.md` and name
+what the successor must re-do or re-verify, rather than letting the next Worker inherit a file it
+will assume is good.
+
+**Log the interruption** under `## Interruptions` in `orchestrator-notes.md` before re-dispatching:
+what died, when, what it left behind, and what the successor must re-verify. Then remove the
+`dispatched:` and `dispatched_at:` lines and delegate again — re-arming them for the new dispatch.
+
+Do **not** roll the round counter forward for a subagent that died. It produced no review and no
+submission; the round it was dispatched for is still unspent.
 
 ### Subagent prompt templates
 
@@ -196,13 +283,17 @@ Use verbatim, filling in `<TASK-ID>` and `<action>`. Subagents are synchronous �
    any code.
 2. **`status.md` is the handshake.** Always update it as the LAST action of a session. Updating it
    early or skipping it breaks the pipeline.
-3. **Clean git state.** The Worker verifies `git status` is clean before starting; if not, a
-   previous cycle left debris — `BLOCKED`, don't guess.
-4. **Reviewer reads ALL previous rounds** and says so explicitly ("I flagged X in round 1 and it
+3. **Clean git state.** The Worker verifies `git status` before starting. Anything in the tree that
+   `orchestrator-notes.md` and `progress.md` do not account for is debris from a previous cycle —
+   `BLOCKED`, don't guess.
+4. **Assume you will be interrupted.** Only files survive a session limit. Arm the dispatch marker
+   before delegating, keep `orchestrator-notes.md` current, and never let a decision live solely in
+   your context.
+5. **Reviewer reads ALL previous rounds** and says so explicitly ("I flagged X in round 1 and it
    remains unaddressed").
-5. **Worker answers ALL findings** — fixed or explicitly rebutted, never silently dropped.
-6. **Honor project rules.** Check `CLAUDE.md`, `GEMINI.md`, or an equivalent rules file for
+6. **Worker answers ALL findings** — fixed or explicitly rebutted, never silently dropped.
+7. **Honor project rules.** Check `CLAUDE.md`, `GEMINI.md`, or an equivalent rules file for
    domain-specific criteria (financial precision, security policy, style mandates) and apply them
    in both implementation and review.
-7. **Follow the project's own workflow** (e.g. `dev-flow.md`) during implementation. This skill adds
+8. **Follow the project's own workflow** (e.g. `dev-flow.md`) during implementation. This skill adds
    review orchestration on top; it does not replace the project's methodology.

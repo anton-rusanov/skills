@@ -13,8 +13,12 @@ then fix it in advance.
 
 1. **`.agents/sdlc/` must be gitignored.** If `.gitignore` doesn't cover it, add it. SDLC artifacts
    must never show up in `git status` or get committed with the code.
-2. **Clean working tree.** Run `git status --porcelain`. Non-empty means a previous cycle left
-   debris → set status `BLOCKED`, reason `DIRTY_WORKING_TREE`, stop.
+2. **Clean working tree.** Run `git status --porcelain`. If it is non-empty, check
+   `orchestrator-notes.md` and `progress.md` in the task directory before concluding anything: a
+   resumed run legitimately carries the Orchestrator's `[IN_PROGRESS]` ROADMAP lock, approved-but-
+   uncommitted spec edits, and a killed predecessor's partial work — all of which those two files
+   account for. Anything left over that neither file explains is debris from an earlier cycle →
+   set status `BLOCKED`, reason `DIRTY_WORKING_TREE`, stop.
 3. **Read project context.** Start at `README.md` — it is a hub that maps the project and links the
    deeper docs; most detail lives in those linked files, not the README. Open the ones your task
    touches and extract:
@@ -53,7 +57,9 @@ Then record, before anything else:
 
 ## Step 2: Task directory & status
 
-Create `.agents/sdlc/tasks/<TASK-ID>/` if it doesn't exist and write `status.md`:
+Create `.agents/sdlc/tasks/<TASK-ID>/` if it doesn't exist and write `status.md`. If the existing
+file carries `dispatched:` / `dispatched_at:` keys, they are the Orchestrator's in-flight marker
+for your session — write the plain template below and let them go:
 
 ```
 IN_PROGRESS
@@ -81,7 +87,36 @@ When addressing findings of any kind, first read **all** review files for the ph
 SPEC phase, where no plan exists yet). Every finding gets a fix or a written rebuttal; silence is
 not an answer.
 
-## Step 4: Update status — your LAST action
+## Step 4: Checkpoint as you go
+
+Your session can end without warning. An API session limit kills you mid-tool-call — no final
+message, no summary, nothing written back. Everything held only in your context is gone. Only files
+survive, so keep `progress.md` in the task directory current as you work.
+
+**Read it first.** `progress.md` accumulates across the whole task, so every entry carries its
+phase. Entries under a phase **earlier** than yours are history — useful background, nothing more.
+Entries under **your own** phase mean a previous Worker in this phase was killed: those are the
+only trustworthy account of what actually landed, so start from there instead of redoing finished
+work, and re-verify anything in the tree they do not mention.
+
+**Append an entry the moment a unit of work is genuinely finished** — a plan step complete, a
+migration validated, a suite green. Not when you are about to start one. Lead every entry with its
+phase:
+
+```
+- 2026-04-27T21:52 — CODE step 3/9 done: added listing_comps migration; flywayValidate green.
+- 2026-04-27T22:04 — CODE step 4/9 done: rebuild() captures the instant before the index read.
+- 2026-04-27T22:09 — CODE: wrote wire/client-detail-with-comps.json. WRITTEN, UNVERIFIED — successor must re-capture it from a real run before touching production code.
+```
+
+Append only, never rewrite. One line per entry: what completed, and the evidence it completed. A
+file you created but have not verified is **not** a finished unit — if you record it at all, mark
+it unverified in those words, because your successor will otherwise trust it and build on a guess.
+
+This file exists for recovery. It is not for the Reviewer and does not replace `plan.md` or your
+written responses to findings.
+
+## Step 5: Update status — your LAST action
 
 The Orchestrator reads `status.md` the moment your session ends; it is your completion signal.
 

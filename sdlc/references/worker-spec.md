@@ -32,5 +32,5 @@ without being interrupted for each one.
 Keep the spec on *what* and *why*. The *how* belongs in `plan.md`, which comes later — don't let
 the spec drift into implementation detail.
 
-When the spec is sound, go to **Step 4** of `worker.md` and set `AWAITING_REVIEW` with
+When the spec is sound, go to **Step 5** of `worker.md` and set `AWAITING_REVIEW` with
 `phase: SPEC`. Do not advance to planning or code.
