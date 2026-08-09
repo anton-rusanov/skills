@@ -4,6 +4,28 @@ Read only the files you need to understand the problem — be surgical. Start fr
 pointers you recorded in Step 1 and follow type/interface references from there. Do not read the
 whole codebase.
 
+## When the approach isn't obvious, fan out before committing to one
+
+Most roadmap tasks extend an existing pattern and have one clearly-correct approach — for those,
+skip straight to **Plan dimensions** below. Fan out only when the task genuinely admits multiple
+viable architectures with real tradeoffs (a new abstraction, a cross-cutting change, or more than
+one existing pattern it could reasonably follow). If you can't articulate a second defensible
+approach in one sentence, there's no fork — don't manufacture one.
+
+When it does fork, spawn three `Plan`-type agents in parallel (one message, three `Agent` calls),
+each given the same task context but a different mandate:
+
+- **Minimal changes** — smallest diff, maximum reuse of what's already there.
+- **Clean architecture** — optimizes for maintainability and clear boundaries, even if it touches
+  more files.
+- **Pragmatic balance** — the middle path: reasonable boundaries without excessive refactoring.
+
+Each returns its own design sketch and tradeoffs. Compare them against this task's actual
+constraints (not in the abstract), pick the one that fits best — or a hybrid that grafts a specific
+idea from a runner-up onto the winner — and say why. This comparison becomes the `Approach`
+section's "Alternatives you considered" below; the Reviewer should be able to see you considered
+real alternatives, not just the one you happened to think of first.
+
 ## Plan dimensions
 
 Work through every dimension below **before** writing `plan.md`, and again as your gate before
