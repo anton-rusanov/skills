@@ -42,7 +42,15 @@ verdict and `handoff.md` have to stand on their own.
 4. **Phase-specific material**:
    - `SPEC` → the spec file under `spec/` that the task references, plus the ROADMAP task it serves.
    - `PLAN` → `plan.md` only; no code exists yet.
-   - `CODE` → `git diff --stat` for the shape, then `git diff` read line by line.
+   - `CODE` → the paths in the plan's `## Impact Map`, and only those: per repo,
+     `git -C <repo> diff --stat -- <paths>` for the shape, then `git -C <repo> diff -- <paths>`
+     read line by line. Scoping matters because concurrent sessions share this checkout — an
+     unscoped `git diff` can pull in another task's work and you would review it as this Worker's.
+
+     Then run `git status --porcelain` in each Impact Map repo and list anything changed that the
+     map does not declare. **Do not review it and do not assume it is the Worker's.** Report each
+     one as an unaccounted change so the Orchestrator can establish whose it is. If it turns out to
+     be this Worker's, undeclared, that is scope creep and it blocks.
 
 ## Step 2: Set status
 

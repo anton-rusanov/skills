@@ -192,15 +192,22 @@ do **not** re-run it. Instead confirm `handoff.md` has a `## Verification` secti
 re-delegate the CODE review. (If the Reviewer reports it could not write `handoff.md`, transcribe
 the content it returned into `handoff.md` yourself, then continue.)
 
-Take the commit message verbatim from the `## Commit Message` section and run:
+Take the commit message verbatim from the `## Commit Message` section. **Stage explicit paths —
+never `git add -A`.** Concurrent sessions share this checkout, so `-A` can commit another task's
+uncommitted work as part of yours, which is both wrong and hard to unpick afterwards. Stage exactly
+the paths in the plan's `## Impact Map`, repo by repo, plus the governing spec under `spec/`:
 
 ```
-git add -A
-git commit -m "<message>"
+git -C <repo> add <path> <path> …
+git -C <repo> commit -m "<message>"
 ```
 
-Then mark the ROADMAP heading `[DONE]` and either amend (`git add -A && git commit --amend
---no-edit`) or add a follow-up commit — either is fine.
+`ROADMAP.md` needs extra care because it is shared. Before staging it, read `git diff ROADMAP.md`:
+if it carries only your task's heading, stage the file; if another session's heading flip is in
+there too, stage just your hunk with `git apply --cached` and leave theirs alone.
+
+Then mark the ROADMAP heading `[DONE]` and either amend or add a follow-up commit — either is fine,
+with the same explicit staging.
 
 **6 — Integrate.** Commit on the project's **canonical branch** — never invent a per-task
 `feature/<task>` or `sdlc/<TASK-ID>` branch. If that canonical branch is `master` (a solo project
@@ -236,7 +243,9 @@ disk, in this order:
 1. **`orchestrator-notes.md`** — binding user directives, the authorized round budget, and the
    interruption log. Read it first; it is the only place earlier sessions' decisions survive.
 2. **`status.md`** — the phase, the round, and whether a `dispatched:` marker is still present.
-3. **`git status --porcelain`** in the umbrella and in every submodule.
+3. **`git status --porcelain`** in the umbrella and in each repo the plan's `## Impact Map` names —
+   the repos your dead subagent could have touched. Changes elsewhere are a concurrent session's,
+   not your casualty's; do not attribute them to it and do not act on them.
 
 Then classify:
 

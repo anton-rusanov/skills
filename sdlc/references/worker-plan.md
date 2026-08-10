@@ -104,11 +104,19 @@ cannot answer one, the plan is not ready.
 <For each acceptance criterion: which part of the approach satisfies it>
 
 ## Impact Map
-| Target File           | Change Type | Dependencies | Breaking Changes |
-|-----------------------|-------------|--------------|------------------|
-| Foo.kt                | MODIFY      | Bar.kt       | None             |
-| Baz.kt                | NEW         | None         | New env var      |
-| docs/CONFIGURATION.md | MODIFY      | None         | None             |
+| Repo       | Target File           | Change Type | Dependencies | Breaking Changes |
+|------------|-----------------------|-------------|--------------|------------------|
+| backend    | Foo.kt                | MODIFY      | Bar.kt       | None             |
+| backend    | Baz.kt                | NEW         | None         | New env var      |
+| (umbrella) | docs/CONFIGURATION.md | MODIFY      | None         | None             |
+
+The Impact Map is this task's **declared scope**, not documentation. Concurrent sessions share this
+checkout, and three later steps read this table to stay out of each other's way: the CODE Worker
+checks the working tree only in the repos it names, the Reviewer reviews only the paths it names,
+and the Orchestrator stages exactly those paths at commit time. Name the repo for every row —
+`backend`, `frontend`, `mls-integration`, or `(umbrella)`. A file the CODE Worker ends up touching
+that is not listed is either a missed dependency or scope creep; it gets added to the map with a
+reason, in the same session, never silently.
 
 ## Test Plan
 <For each acceptance criterion: what test covers it>

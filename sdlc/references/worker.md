@@ -20,15 +20,34 @@ answer questions mid-session, so anything you need decided goes in writing, into
 
 1. **`.agents/sdlc/` must be gitignored.** If `.gitignore` doesn't cover it, add it. SDLC artifacts
    must never show up in `git status` or get committed with the code.
-2. **Working tree.** Run `git status --porcelain` in the umbrella and every submodule. A dirty tree
-   is sometimes correct and sometimes debris, and you cannot tell which by reading the diff — so
-   decide from your **action**, never from whether the changes look related to the task.
+2. **Working tree.** Concurrent sessions share this checkout and independent work is *expected* to
+   run in parallel — someone else may be writing a spec, planning, or implementing a different
+   module right now. So check only what your phase can actually collide with, and never block on,
+   or comment on, changes outside that scope: you cannot tell whose they are.
+
+   | Your phase | What you check |
+   |---|---|
+   | `SPEC` | The governing spec file under `spec/`. Nothing else, in any repo. |
+   | `PLAN` | Nothing. `plan.md` is gitignored and you write no code. |
+   | `CODE` | `git status --porcelain` in each repo named in the plan's `## Impact Map`, plus the paths it names in the umbrella. Not the repos you will not touch. |
+
+   Only CODE needs exclusivity, and only over the repos in its Impact Map. Two sessions may be in
+   SPEC or PLAN simultaneously, even on the same module. If a repo you need is already dirty with
+   work that is not yours, another session is implementing there → `BLOCKED`, reason
+   `DIRTY_WORKING_TREE`, and name the repo so the Orchestrator can sequence the two tasks.
+
+   `ROADMAP.md` is shared: it can hold another session's `[IN_PROGRESS]` flip alongside yours. Never
+   block on that.
+
+   Then, within your scope: a dirty tree is debris unless your **action** explains it — you cannot
+   tell which by reading the diff.
 
    Legitimate in every phase, and nothing else is:
    - the Orchestrator's `[IN_PROGRESS]` flip on the task's `ROADMAP.md` heading;
-   - from PLAN onward, the approved-but-uncommitted edits to the governing spec under `spec/` —
-     the SPEC phase leaves them unsubmitted by design and the Orchestrator commits them with the
-     code.
+   - uncommitted edits to the **governing spec** under `spec/`. The SPEC phase writes them and
+     leaves them unsubmitted by design, and they stay uncommitted through PLAN and CODE until the
+     Orchestrator commits them with the code. Other specs under `spec/` are not yours — another
+     session may be drafting one.
 
    Source changes on top of those depend on your action:
 
