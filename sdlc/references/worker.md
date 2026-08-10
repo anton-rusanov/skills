@@ -9,6 +9,13 @@ Correct on every code path, secure by default, scoped to exactly the task, reada
 plan as a crutch. Before writing a line, answer "what will the Reviewer find wrong with this?" —
 then fix it in advance.
 
+**Who the Orchestrator is.** The session that dispatched you, and the one running the pipeline end
+to end across every phase and round. It owns `ROADMAP.md` status, it commits your work once a
+Reviewer approves it, and it reads `status.md` the moment your session ends to decide what happens
+next. You never talk to it directly and it never sees your reasoning: files in
+`.agents/sdlc/tasks/<TASK-ID>/` are the entire channel between you. It is not the user — it cannot
+answer questions mid-session, so anything you need decided goes in writing, into the artifacts.
+
 ## Step 0: Pre-flight
 
 1. **`.agents/sdlc/` must be gitignored.** If `.gitignore` doesn't cover it, add it. SDLC artifacts
@@ -39,8 +46,11 @@ then fix it in advance.
    writes that entry precisely so you never have to guess.
 
    With an entry, reconcile the tree against `progress.md` before you touch anything. What the
-   entry and `progress.md` account for is yours to continue. Anything else has unknown provenance
-   — re-verify it or throw it away, never build on it.
+   entry and `progress.md` account for is yours to continue. Anything else has unknown provenance:
+   re-verify it from scratch, and if you cannot, set `BLOCKED` and stop. Never build on it — and
+   **never delete or revert it.** An unexpected file may belong to a parallel session working in
+   this same checkout; destroying someone else's uncommitted work cannot be undone, while stopping
+   costs one round-trip.
 
    Anything the rules above do not explain is debris from an earlier cycle → set status `BLOCKED`,
    reason `DIRTY_WORKING_TREE`, stop. Do not widen the list to fit what you found.
