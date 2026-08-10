@@ -13,12 +13,37 @@ then fix it in advance.
 
 1. **`.agents/sdlc/` must be gitignored.** If `.gitignore` doesn't cover it, add it. SDLC artifacts
    must never show up in `git status` or get committed with the code.
-2. **Clean working tree.** Run `git status --porcelain`. If it is non-empty, check
-   `orchestrator-notes.md` and `progress.md` in the task directory before concluding anything: a
-   resumed run legitimately carries the Orchestrator's `[IN_PROGRESS]` ROADMAP lock, approved-but-
-   uncommitted spec edits, and a killed predecessor's partial work — all of which those two files
-   account for. Anything left over that neither file explains is debris from an earlier cycle →
-   set status `BLOCKED`, reason `DIRTY_WORKING_TREE`, stop.
+2. **Working tree.** Run `git status --porcelain` in the umbrella and every submodule. A dirty tree
+   is sometimes correct and sometimes debris, and you cannot tell which by reading the diff — so
+   decide from your **action**, never from whether the changes look related to the task.
+
+   Legitimate in every phase, and nothing else is:
+   - the Orchestrator's `[IN_PROGRESS]` flip on the task's `ROADMAP.md` heading;
+   - from PLAN onward, the approved-but-uncommitted edits to the governing spec under `spec/` —
+     the SPEC phase leaves them unsubmitted by design and the Orchestrator commits them with the
+     code.
+
+   Source changes on top of those depend on your action:
+
+   | Your action | Source changes allowed |
+   |---|---|
+   | "Address spec review findings" | None. |
+   | "Create a plan" | None. |
+   | "Implement the approved plan" | None — unless you are reviving a killed predecessor (below). |
+   | "Address review findings" | In CODE, the previous round's changes: that is the reviewed baseline you are editing. In SPEC and PLAN, none. |
+
+   **Reviving a killed predecessor** is the only thing that licenses partial, unreviewed source
+   changes on a first dispatch, and it takes positive evidence — an `## Interruptions` entry in
+   `orchestrator-notes.md` naming your phase. No entry, no revival: assume debris and block. Your
+   own judgement that "a previous session probably died here" is not evidence; the Orchestrator
+   writes that entry precisely so you never have to guess.
+
+   With an entry, reconcile the tree against `progress.md` before you touch anything. What the
+   entry and `progress.md` account for is yours to continue. Anything else has unknown provenance
+   — re-verify it or throw it away, never build on it.
+
+   Anything the rules above do not explain is debris from an earlier cycle → set status `BLOCKED`,
+   reason `DIRTY_WORKING_TREE`, stop. Do not widen the list to fit what you found.
 3. **Read project context.** Start at `README.md` — it is a hub that maps the project and links the
    deeper docs; most detail lives in those linked files, not the README. Open the ones your task
    touches and extract:

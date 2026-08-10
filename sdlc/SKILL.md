@@ -253,8 +253,14 @@ what the successor must re-do or re-verify, rather than letting the next Worker 
 will assume is good.
 
 **Log the interruption** under `## Interruptions` in `orchestrator-notes.md` before re-dispatching:
-what died, when, what it left behind, and what the successor must re-verify. Then remove the
-`dispatched:` and `dispatched_at:` lines and delegate again — re-arming them for the new dispatch.
+the phase it died in, when, what it left behind, and what the successor must re-verify. Then remove
+the `dispatched:` and `dispatched_at:` lines and delegate again — re-arming them for the new
+dispatch.
+
+That entry is not bookkeeping. It is the replacement Worker's **authorization** to start against a
+dirty tree, and it must name the phase, because a Worker with a partial tree and no interruption
+entry is required to block with `DIRTY_WORKING_TREE`. Skip it and the pipeline stops dead; write it
+loosely — "some work was in progress" — and the Worker inherits a tree it cannot reason about.
 
 Do **not** roll the round counter forward for a subagent that died. It produced no review and no
 submission; the round it was dispatched for is still unspent.
@@ -283,9 +289,12 @@ Use verbatim, filling in `<TASK-ID>` and `<action>`. Subagents are synchronous �
    any code.
 2. **`status.md` is the handshake.** Always update it as the LAST action of a session. Updating it
    early or skipping it breaks the pipeline.
-3. **Clean git state.** The Worker verifies `git status` before starting. Anything in the tree that
-   `orchestrator-notes.md` and `progress.md` do not account for is debris from a previous cycle —
-   `BLOCKED`, don't guess.
+3. **Clean git state.** The Worker verifies `git status` before starting, and a dirty tree is debris
+   unless its **action** explains it: the ROADMAP lock and uncommitted spec edits always, the
+   previous round's code when addressing CODE findings, and a killed predecessor's partial work
+   *only* when you recorded the interruption in `orchestrator-notes.md`. Otherwise `BLOCKED`, don't
+   guess. Your half of this is writing that entry — without it the replacement Worker will
+   correctly refuse to start.
 4. **Assume you will be interrupted.** Only files survive a session limit. Arm the dispatch marker
    before delegating, keep `orchestrator-notes.md` current, and never let a decision live solely in
    your context.
