@@ -175,6 +175,11 @@ the first line belongs to whoever set it, and overwriting it with `IN_PROGRESS` 
 Reviewer refuse to review. One edit per delegation is what makes an interrupted run recoverable;
 skip it and a dead subagent becomes invisible to whoever wakes up next.
 
+**Model inheritance.** When spawning Worker or Reviewer agents via the `Agent` tool, pass the
+current session's model via the `model` parameter. This ensures all agents in the SDLC pipeline —
+orchestrator, Worker, and Reviewer — run on the same model tier. If the orchestrator is Fable 5,
+workers and reviewers will be Fable 5. If Opus 5, they will be Opus 5, and so on.
+
 **Round loop (each phase).** After every subagent returns, read `status.md`:
 - Worker returned anything but `AWAITING_REVIEW` → **blocked**, reason `WORKER_DID_NOT_SIGNAL`.
 - Delegate to a **Reviewer**, then read `status.md` again:
