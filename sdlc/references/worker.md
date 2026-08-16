@@ -119,7 +119,7 @@ never read, write, or delete it.
 ```
 IN_PROGRESS
 phase: <SPEC | PLAN | CODE>
-round: <current round number>
+round: <current PHASE round — resets to 1 each phase, NOT the review-round-N filename counter>
 updated: <current ISO timestamp>
 task: <TASK-ID>
 ```

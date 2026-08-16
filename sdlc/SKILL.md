@@ -58,6 +58,15 @@ of dispatch and every later death looked identical to a clean finish. The in-fli
 lives in `dispatched.md`, a file no subagent ever writes. If you see `dispatched:` keys in an old
 `status.md`, ignore them.
 
+**`round` is the *phase* round, and it resets to 1 when a phase begins.** PLAN round 3 is followed
+by CODE round **1**, not 4. The `review-round-N.md` *filenames* keep counting up across phases
+(so a task can have `review-round-4.md` titled "CODE, phase round 1"), and that mismatch has
+already caused a Worker to write `round: 4` into a fresh CODE phase — which would trip
+`MAX_ROUNDS_EXCEEDED` against `MaxRounds: 3` on the very first CODE review, with zero CODE rounds
+actually spent. If you inherit a `round:` larger than the number of `review-round-N.md` files
+belonging to the *current* phase, correct it before dispatching and say so in
+`orchestrator-notes.md`.
+
 `phase` tells the Reviewer **what** to review: `SPEC` (the governing spec under `spec/`, no plan or
 code yet), `PLAN` (`plan.md`, no code yet), `CODE` (`git diff` against the approved plan).
 
