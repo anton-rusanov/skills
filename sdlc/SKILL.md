@@ -99,7 +99,7 @@ Markers: `[PENDING]` → `[IN_PROGRESS]` → `[DONE]`, or `[BLOCKED]`. Anything 
 | Option | Required | How to specify | Default |
 |--------|----------|----------------|---------|
 | `TaskFilter` | **Yes — ask if missing** | "run the pipeline for TASK-007, TASK-012" / "implement TASK-003" / "all pending tasks" | — |
-| `MaxRounds` | No | "with up to 2 review rounds" | 3 |
+| `MaxRounds` | No | "with up to 2 review rounds" | 4 |
 | `ContinueOnBlocked` | No | "skip blocked tasks" | false (stop on first blocked task) |
 | `CreatePR` | **Ask once at the start** | "open a PR for this" / "no PR, I'll push" | false (stop at the local commit; the user pushes) |
 
@@ -141,6 +141,18 @@ For each task in `TaskFilter` (ROADMAP.md order when "all"):
 **1 — Find and lock the task.** Read `ROADMAP.md` and find `### [PENDING] <TASK-ID>: ...`. If it is
 not `[PENDING]`, skip it with a note. Create `.agents/sdlc/tasks/<TASK-ID>/` if missing and mark
 the heading `[IN_PROGRESS]`.
+
+**Commit that flip immediately, on its own, before dispatching anything** — and if you are working
+in a separate worktree, merge it to the canonical branch too. The `[IN_PROGRESS]` marker is how
+*other sessions* know not to pick the task up, and an uncommitted edit signals nothing to anyone:
+they read the canonical branch, not your working tree. TASK-030 was run to completion in a
+worktree with the flip left uncommitted and went straight `[PENDING]` → `[DONE]`; for two and a
+half hours every other session saw it as free to take.
+
+Committing it up front also removes the only routine reason your worktree would carry a dirty
+`ROADMAP.md`, which is what otherwise blocks a fast-forward when siblings move the branch under
+you. Never stash the lock to get a merge through — that deletes the signal for exactly as long as
+the window is open.
 
 **2 — Phase 0: Spec review** *(only when a product spec governs the task — the prompt references a
 `spec/spec-*.md` or the ROADMAP task links one; otherwise skip straight to Phase 1)*.
