@@ -37,6 +37,7 @@ Everything lives in `.agents/sdlc/tasks/<TASK-ID>/` (gitignored):
 | `plan.md` | Worker | The implementation plan; also holds the Worker's rebuttals. |
 | `progress.md` | Worker | Append-only checkpoint log. Lets a Worker killed mid-flight be replaced without redoing — or blindly trusting — its partial work. |
 | `review-round-N.md` | Reviewer | Plan/code findings, one per round. The next Reviewer session reads these — this is how it "remembers". |
+| `dispatched.md` | **Orchestrator only** | The in-flight marker and delegation lock. Written before every `Agent` call, deleted the moment that agent's completion notification arrives. Subagents never read or write it. |
 | `handoff.md` | Reviewer | The Reviewer's terminal artifact. On CODE approval: commit message, what changed, verification evidence. On `BLOCKED`: the unresolved decisions for the human. |
 
 `status.md` format — the Orchestrator reads it after every subagent returns:
@@ -47,16 +48,15 @@ phase: PLAN
 round: 1
 updated: 2026-04-27T21:43:00
 task: TASK-003
-dispatched: REVIEWER — Review the plan for roadmap task TASK-003
-dispatched_at: 2026-04-27T21:44:10
 ```
 
-The first five keys are the subagent's handshake, and it rewrites the whole file as its last
-action. The two `dispatched*` keys are the **Orchestrator's** in-flight marker: it appends them
-immediately before delegating and never touches the first line. Because a subagent rewrites the
-file, finishing clears them for free — so a `dispatched:` marker that is *still there* means that
-subagent **died mid-flight** and nothing it learned survives. Workers and Reviewers ignore both
-keys.
+The five keys are the subagent's handshake. **`status.md` carries no in-flight marker** — earlier
+versions of this skill appended `dispatched:` / `dispatched_at:` here and inferred a mid-flight
+death from their presence. That never worked: `references/worker.md` Step 2 instructs the Worker to
+drop those keys *on startup*, before doing any work, so the marker was gone within about a minute
+of dispatch and every later death looked identical to a clean finish. The in-flight marker now
+lives in `dispatched.md`, a file no subagent ever writes. If you see `dispatched:` keys in an old
+`status.md`, ignore them.
 
 `phase` tells the Reviewer **what** to review: `SPEC` (the governing spec under `spec/`, no plan or
 code yet), `PLAN` (`plan.md`, no code yet), `CODE` (`git diff` against the approved plan).
@@ -170,10 +170,35 @@ of this phase and the Reviewer reviews them with the code. **Never read the diff
 yourself** — that is what keeps your context flat across many tasks in a row.
 
 **Arming a delegation.** Before *every* `Agent` call — Worker or Reviewer, every phase, including
-re-dispatches — append `dispatched:` and `dispatched_at:` to `status.md`. Use `Edit`, not `Write`:
-the first line belongs to whoever set it, and overwriting it with `IN_PROGRESS` would make the next
-Reviewer refuse to review. One edit per delegation is what makes an interrupted run recoverable;
-skip it and a dead subagent becomes invisible to whoever wakes up next.
+re-dispatches — write `dispatched.md`:
+
+```
+role: WORKER
+action: Implement the approved plan for roadmap task TASK-003
+phase: CODE
+round: 1
+dispatched_at: <current ISO timestamp, read from the clock>
+```
+
+Delete it the moment that agent's completion notification arrives. Two rules follow from it, and
+they are what make an interrupted run recoverable:
+
+- **`dispatched.md` is a lock.** Never start a second Worker or Reviewer for a task while it
+  exists. If you believe the running one is dead, you must still resolve the lock deliberately
+  (below) rather than dispatching alongside it. Two agents editing one tree is the worst outcome
+  this skill can produce — worse than a stalled run — because neither one's work can afterwards be
+  trusted or cleanly separated.
+- **Never infer liveness from silence.** `progress.md` is milestone-based by design
+  (`references/worker.md` Step 4: append when a unit of work is *finished*, never when starting
+  one), so a Worker in a single long implementation step legitimately writes nothing for an hour or
+  more. Its timestamps are self-reported and in practice are often wrong by minutes, so they cannot
+  even measure that silence reliably. Silence is not evidence of death.
+
+**How you actually learn an agent stopped: the harness tells you.** `Agent` calls in this harness
+are asynchronous and emit a task-notification carrying `completed` or `killed` when the agent
+stops. That notification is authoritative and immediate — wait for it. Do not poll files, do not
+time out a quiet agent, and do not reason about `git status` mtimes to decide whether something is
+still alive.
 
 **Model inheritance.** When spawning Worker or Reviewer agents via the `Agent` tool, pass the
 current session's model via the `model` parameter. This ensures all agents in the SDLC pipeline —
@@ -247,7 +272,7 @@ disk, in this order:
 
 1. **`orchestrator-notes.md`** — binding user directives, the authorized round budget, and the
    interruption log. Read it first; it is the only place earlier sessions' decisions survive.
-2. **`status.md`** — the phase, the round, and whether a `dispatched:` marker is still present.
+2. **`dispatched.md`** — present or absent; then **`status.md`** for the phase and round.
 3. **`git status --porcelain`** in the umbrella and in each repo the plan's `## Impact Map` names —
    the repos your dead subagent could have touched. Changes elsewhere are a concurrent session's,
    not your casualty's; do not attribute them to it and do not act on them.
@@ -256,8 +281,9 @@ Then classify:
 
 | What you find | What it means | What to do |
 |---|---|---|
-| No `dispatched:` marker | The last subagent finished cleanly | Continue the round loop from `status.md` |
-| `dispatched:` present | That subagent **died mid-flight** — its reasoning is gone, its work is partial and unreviewed | Assess the tree, log it, re-dispatch the same action |
+| No `dispatched.md` | The last subagent finished cleanly | Continue the round loop from `status.md` |
+| `dispatched.md` present, and you are a *fresh* session (the run died with it) | That subagent died mid-flight — its reasoning is gone, its work is partial and unreviewed | Assess the tree, log it, delete `dispatched.md`, re-dispatch the same action |
+| `dispatched.md` present and you are the *same* session that armed it | You have not received its completion notification, so **it is still running** | Wait. Do not dispatch alongside it. |
 
 **Assessing the tree after a death.** You cannot tell finished work from abandoned work by looking
 at it. `progress.md` is the successor's only trustworthy record of what actually landed. Anything
@@ -267,9 +293,14 @@ what the successor must re-do or re-verify, rather than letting the next Worker 
 will assume is good.
 
 **Log the interruption** under `## Interruptions` in `orchestrator-notes.md` before re-dispatching:
-the phase it died in, when, what it left behind, and what the successor must re-verify. Then remove
-the `dispatched:` and `dispatched_at:` lines and delegate again — re-arming them for the new
-dispatch.
+the phase it died in, when, what it left behind, and what the successor must re-verify. Then delete
+`dispatched.md` and delegate again, arming a fresh one for the new dispatch.
+
+**If you are wrong about the death, the log is what saves you.** An agent you wrote off can still
+surface alive — it may simply have been inside one long, silent unit of work. The moment that
+happens you have two writers on one tree, so stop *one* of them immediately and record in
+`## Interruptions` which one you stopped and which files each had touched. Prefer keeping whichever
+agent's context matches the tree as it now stands.
 
 That entry is not bookkeeping. It is the replacement Worker's **authorization** to start against a
 dirty tree, and it must name the phase, because a Worker with a partial tree and no interruption
@@ -281,7 +312,9 @@ submission; the round it was dispatched for is still unspent.
 
 ### Subagent prompt templates
 
-Use verbatim, filling in `<TASK-ID>` and `<action>`. Subagents are synchronous — no polling.
+Use verbatim, filling in `<TASK-ID>` and `<action>`. Subagent calls are **asynchronous**: the
+`Agent` tool returns immediately and a task-notification arrives when the agent completes or is
+killed. Wait for that notification — never poll the filesystem to guess at its state.
 
 **Worker:**
 > "You are the Worker in the SDLC lifecycle for this project. Read

@@ -111,9 +111,10 @@ Then record, before anything else:
 
 ## Step 2: Task directory & status
 
-Create `.agents/sdlc/tasks/<TASK-ID>/` if it doesn't exist and write `status.md`. If the existing
-file carries `dispatched:` / `dispatched_at:` keys, they are the Orchestrator's in-flight marker
-for your session — write the plain template below and let them go:
+Create `.agents/sdlc/tasks/<TASK-ID>/` if it doesn't exist and write `status.md` using the plain
+template below. If the existing file carries legacy `dispatched:` / `dispatched_at:` keys, let them
+go — the Orchestrator's in-flight marker now lives in `dispatched.md`, which is **not yours**:
+never read, write, or delete it.
 
 ```
 IN_PROGRESS
@@ -162,6 +163,11 @@ phase:
 - 2026-04-27T22:04 — CODE step 4/9 done: rebuild() captures the instant before the index read.
 - 2026-04-27T22:09 — CODE: wrote wire/client-detail-with-comps.json. WRITTEN, UNVERIFIED — successor must re-capture it from a real run before touching production code.
 ```
+
+**Read the clock; never estimate a timestamp.** Get it from `date -u +%Y-%m-%dT%H:%M` (or the
+equivalent) at the moment you append. Entries with invented times have been observed running
+non-monotonically and drifting tens of minutes from reality, which makes this file useless for the
+one job it has — telling a successor what actually landed, and in what order.
 
 Append only, never rewrite. One line per entry: what completed, and the evidence it completed. A
 file you created but have not verified is **not** a finished unit — if you record it at all, mark

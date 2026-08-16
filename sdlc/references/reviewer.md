@@ -22,9 +22,10 @@ verdict and `handoff.md` have to stand on their own.
    review criteria (financial precision, security policy, style mandates).
 3. **Find the task** — a directory under `.agents/sdlc/tasks/` whose `status.md` says
    `AWAITING_REVIEW`. If several match, use the one named in the prompt; if none, report and stop.
-4. **Identify the phase** from `status.md`: `SPEC`, `PLAN`, or `CODE`. `status.md` may also carry
-   `dispatched:` / `dispatched_at:` keys — those are the Orchestrator's in-flight marker for *your*
-   session. Ignore them, and drop them when you rewrite the file in Step 2 and Step 6.
+4. **Identify the phase** from `status.md`: `SPEC`, `PLAN`, or `CODE`. A `dispatched.md` beside it
+   is the Orchestrator's in-flight marker and lock — **not yours**: never read, write, or delete it.
+   Legacy `dispatched:` / `dispatched_at:` keys inside `status.md` are obsolete; ignore them and
+   drop them when you rewrite the file in Step 2 and Step 6.
 5. **Read the task in `ROADMAP.md`** — full description, acceptance criteria, constraints. This is
    your source of truth for what the task should accomplish; `plan.md` is only the Worker's
    *interpretation* of it, and interpretations can be wrong.
