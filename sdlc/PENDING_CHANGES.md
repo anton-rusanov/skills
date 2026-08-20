@@ -548,15 +548,88 @@ before deciding item 4: the gate is very cheap *and* very rarely useful.
 
 | | n | median abs. drift | within 5 min | worst |
 |---|---|---|---|---|
-| Composed (no `date` call) | 63 | **48 min** | 5 (8%) | 564 min |
-| Ran a `date` call | 10 | **3 min** | 6 (60%) | 326 min |
+| Composed (no `date` call) | 62 | **48 min** | 5 (8%) | 565 min |
+| Ran a `date` call | 11 | **3 min** | 6 | 326 min |
 
 **62 of 75 Reviewers composed the timestamp**; 65 of 73 wrote at least one round `:00`/`:30`/
-`T00:00:00` value. Workers are barely better — **18 of 73** ran `date` at all. Worst case: a TASK-027
-Reviewer wrote `updated: 2026-08-09T16:25:00` at a real `07:00:27Z`, **+9h24m**, and five sessions in
-that run drifted 400–560 min *in the same direction* — a consistent-looking invented afternoon.
+`T00:00:00` value. Workers are barely better — **18 of 73** ran `date` at all.
 
-`status.md` is the Orchestrator's only handshake artifact. Item 11 must therefore extend the mandate
-to `reviewer.md`, to `worker.md` Step 5, and to the Orchestrator's `dispatched_at` **before** the
-caveat in `SKILL.md` is deleted — otherwise the caveat is deleted while remaining true for the field
-that matters most.
+### The timezone hypothesis, tested and refuted
+
+The author asked whether the 400–560 min cluster was a UTC→Pacific conversion error (Pacific in
+August is UTC−7 = **420 min**). It is not. Six independent tests:
+
+1. **The devcontainer has no Pacific clock.** `/etc/timezone` is `Etc/UTC`, `TZ` unset, `date` ==
+   `date -u`. No shell call could have picked up a local Pacific time.
+2. **The signed distribution is a smooth right-tailed continuum, not a 0/420 bimodal mixture.** Of 62
+   composed sessions: **59 positive, 3 negative, 0 zero**; 33 of them sit in `+0..+60`. Full sorted
+   list: `-431, -352, -38, +0, +1, +3, +3, +6, +9, +9, +10, +13, +13, +13, +15, +16, +18, +18, +19,
+   +23, +24, +25, +27, +28, +32, +33, +33, +36, +37, +41, +43, +45, +48, +50, +55, +55, +61, +82,
+   +85, +86, +88, +103, +122, +126, +135, +136, +140, +153, +187, +190, +199, +247, +285, +327, +328,
+   +366, +369, +411, +425, +467, +520, +565`.
+3. **The 420 test fails.** At ±20 min: 2 sessions in [400,440], 1 in [−440,−400]. Across all 122
+   composed writes, every value in [360,480] is `366, 369, 376, 384, 411, 421, 425, 462, 467` —
+   **exactly one write in the whole corpus lands within a minute of 420.** Scattered, not constant.
+4. **The five-session cluster is a ramp, not an offset** — and this is the real mechanism. Same run,
+   same day (`835aa869-…`):
+
+   | sess | phase | written | harness (UTC) | drift |
+   |---|---|---|---|---|
+   | 25 | SPEC | 2026-08-09T12:00:00 | 05:35:49Z | +384 |
+   | 25 | SPEC | 2026-08-09T12:30:00 | 05:38:39Z | +411 |
+   | 26 | SPEC | 2026-08-09T13:35:00 | 06:34:05Z | +421 |
+   | 26 | SPEC | 2026-08-09T13:40:00 | 06:34:54Z | +425 |
+   | 27 | SPEC | 2026-08-09T14:20:00 | 06:37:39Z | +462 |
+   | 27 | SPEC | 2026-08-09T14:25:00 | 06:38:06Z | +467 |
+   | 28 | PLAN | 2026-08-09T15:20:00 | 06:48:35Z | +511 |
+   | 28 | PLAN | 2026-08-09T15:35:00 | 06:54:36Z | +520 |
+   | 29 | PLAN | 2026-08-09T16:20:00 | 06:59:39Z | +560 |
+   | 29 | PLAN | 2026-08-09T16:25:00 | 07:00:27Z | +565 |
+
+   Monotonic +384 → +565. Real elapsed 85 min; the written clock advances **265 min, ~3x too fast**.
+   It starts at +384, not 420. Sessions 30 and 31 of the *same run* drifted +30/+45 and +10/+190.
+5. **No conversion was reasoned anywhere.** Searching all five cluster sessions for
+   `Pacific|PDT|PST|PT|America/Los_Angeles|UTC-7|-07:00|local time|timezone`: **0 hits**. Across all
+   75 Reviewer sessions, 3 hits total, all three about TASK-037's *subject matter* (Ricci's own
+   ambient-zone bug), never the agent's own value.
+6. **One agent had the true clock in its context and composed anyway — decisive.** Session 53 ran
+   `date` incidentally inside verify probes, printing `host date -u: 2026-08-14 03:22:09` … `03:23:47`
+   four times into its own transcript. At harness time `03:28:56Z` it wrote
+   `updated: 2026-08-14T08:55`. **+326 — neither +420 nor −420.** It had already written `08:35`
+   before the first `date` call and then advanced its own fiction by 20 minutes. Sessions 51 (+242)
+   and 18 (+250) are the same shape. The 8 sessions that ran `date` *for the timestamp* land at
+   +37, +3, +2, +2, −1, −1, −1, −1.
+
+**Control test.** If naked values were secretly Pacific, subtracting 420 would snap them onto the
+real clock. It does the opposite:
+
+| group | n | median | in [400,440] | within ±15 min |
+|---|---|---|---|---|
+| naked, read as UTC | 42 | +73 | 2 | 7 |
+| explicit `Z`/`+00:00`/`-04:00` | 31 | +19 | 0 | 11 |
+| naked, **re-read as UTC−7** | 42 | **−347** | — | **2** |
+
+5x worse and sign-flipped. The naked and offset-bearing groups also share the same one-sided positive
+shape, which they would not if only the naked ones were mis-zoned.
+
+**Offset markers** (144 writes across 73 sessions): naked **83**, `Z` **31**, `+00:00` **29**,
+`-04:00` **1**. Per session: naked-only 42, explicit-only 31, mixed 0. **Zero `-07:00` values in the
+entire corpus.** The single `-04:00` is Eastern DST — `updated: 2026-08-07T01:10:00-04:00` written at
+a real `01:00:15Z` — most likely bleed from Ricci's own `NY_ZONE` constants, which is a
+subject-matter contamination worth noting but not a timezone policy problem.
+
+### 36. The invented clock is inherited through `status.md` *(recommended — supersedes half of item 28)*
+The ramp in test 4 is not 10 independent guesses. Each Reviewer read its predecessor's invented
+`updated:` value out of `status.md`, treated it as the current time, and advanced it by a
+plausible-feeling interval — a **compounding narrative clock** that ran 3x real time across five
+sessions and ended most of a day ahead.
+
+That changes the fix. Porting `worker.md` Step 4's "never write a timestamp you composed yourself"
+into `reviewer.md` is necessary but not sufficient: the mandate must also **forbid seeding from the
+value already in `status.md`**, which is the vector that turns one agent's guess into a run-wide
+drift. Concretely, the rule wants to be: run `date -u +%Y-%m-%dT%H:%M`, paste stdout unedited, and
+never derive `updated:` from any timestamp you read on disk.
+
+Scope for the item-11 edit, now confirmed: `reviewer.md` Steps 2 and 5, `worker.md` Step 5 (the
+`status.md` block, which the existing Step 4 mandate does **not** reach), and `SKILL.md`'s
+`dispatched_at`. Only after all four does deleting the `SKILL.md` caveat become honest.
