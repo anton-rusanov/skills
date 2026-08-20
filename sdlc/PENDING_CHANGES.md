@@ -326,3 +326,133 @@ sessions. Only two quota windows exist in the entire history, both July 2026.
 - Decide item 4 (the Reviewer-error gate).
 - Then SDLC the whole list — the author's instruction was "make a list of things for you to
   later SDLC them," so this file is the input to a Spec, not a change order.
+
+---
+
+# Session 2 — `worker.md` / `reviewer.md`
+
+Second design session, 2026-08-20. Everything below is the **design partner's own read before the
+author walked the files** — marked *recommended* or *open*, none of it decided. It is written down
+up front only so a container death cannot lose it again. Numbering continues from 20.
+
+## Recommended / open — not yet walked with the author
+
+### 21. Phase 0's first dispatch contradicts the Reviewer's own start-up guard *(open)*
+`SKILL.md` step 2a makes a **Reviewer** the first agent on a spec-governed task, before any Worker
+has run. But:
+- `reviewer.md` Step 0.3: find a task dir "whose `status.md` says `AWAITING_REVIEW`".
+- `reviewer.md` Step 0.4: "Identify the phase from `status.md`."
+- the Reviewer prompt template: "`status.md` should say `AWAITING_REVIEW` — if it does not, report
+  this and stop without writing a review."
+
+On a fresh spec-governed task there is no `status.md` at all — only the Worker's Step 2 creates it —
+so by the letter of the protocol the first Phase-0 Reviewer must stop. Nothing tells the Reviewer to
+create `status.md`, and the template has no `phase:` slot, so `phase: SPEC` has no channel to travel
+on. 23 tasks ran SPEC rounds anyway, which means Orchestrators improvised past this every time.
+
+### 22. There is no channel for naming the governing spec *(open)*
+`SKILL.md` triggers Phase 0 when "the prompt references a `spec/spec-*.md` **or** the ROADMAP task
+links one" — but if it came from the prompt, neither Worker nor Reviewer ever learns which file.
+Both protocols only say "the spec file the task references". Agents plugged the hole themselves: **8
+of 47** `status.md` files carry an invented `spec:` key (A5, A7, B9, B11, B15-live, B20, S22,
+SESSION-10), and one carries `plan:`/`review:`/`summary:` as well. The handshake schema is five keys;
+agents needed six.
+
+### 23. Item 6 lands harder than recorded — two rival conventions, not one improvisation *(recommended)*
+The corpus shows **six** tasks inventing per-phase filenames across six weeks, in **two mutually
+incompatible mappings**:
+- B10 (2026-07-05), B15-live (2026-07-15), TASK-044 (2026-08-16): `plan-review-round-N.md` for PLAN,
+  `review-round-N.md` for CODE.
+- TASK-028 (2026-08-10), TASK-031 (2026-08-11), TASK-032 (2026-08-13): `review-round-N.md` for PLAN,
+  `code-review-round-N.md` for CODE.
+
+Three of them wrote an in-file apology for it, citing each other as precedent ("named
+`code-review-round-1.md` per the TASK-028 convention (the most recent precedent)"; "the B10/B15-live
+naming precedent"). TASK-044 went further and **renamed its predecessor's review files**, a mutation
+of prior artifacts nothing authorizes.
+
+The consequence is worse than untidiness: `reviewer.md` Step 1.2 tells a CODE Reviewer to read "all
+previous review files for this phase — `review-round-N.md`". Under the TASK-028 convention those
+files are the **PLAN** reviews. A CODE Reviewer following the protocol literally reads the wrong
+phase's findings and escalates them. Item 6 must therefore also fix Step 1.2's read-list, not just
+the write-name.
+
+### 24. `worker.md` Step 5's round rule is arithmetically wrong *(recommended)*
+Step 5: "The round number is the count of existing review files for **this phase** — …otherwise
+`review-round-N.md`. First submission is round 1." With the shared counter, a CODE Worker's first
+submission after 3 PLAN rounds counts 3 files and writes `round: 3`. The rule contradicts its own
+next sentence. `reviewer.md` Step 2 has the identical defect ("count of existing review files for
+this phase, plus 1"). Both are *unexecutable* today — you cannot tell a file's phase from its name.
+This is the same defect `SKILL.md` currently papers over with a warning paragraph; item 6 deletes the
+cause in all three files at once.
+
+### 25. Files outside the Impact Map are reported but never reviewed — and then staged *(open)*
+`reviewer.md` Step 1.4 (CODE): review "the paths in the plan's `## Impact Map`, **and only those**",
+then list anything else as an unaccounted change and "**do not review it**". Item 12 changes staging
+to a Worker-maintained `changed-files.md`. Composed, those two give a path that is *staged and
+committed without ever being reviewed*: a legitimate round-2 fix in a file the map does not name.
+Item 12 must therefore also move the Reviewer's review scope, not only the Orchestrator's staging
+scope — otherwise it converts a stale-list problem into an unreviewed-code problem. The corpus shows
+unaccounted changes are real and recurring (17 review files across 6 tasks report them).
+
+### 26. `## Observations for Future Tasks` is a dead-letter box *(recommended)*
+`worker.md` and `worker-code.md` both say: don't fix adjacent bugs, note them in `plan.md` under
+`## Observations for Future Tasks` "and tell the user at the end of the session". **34 of 47**
+`plan.md` files carry that section — and `plan.md` is gitignored, disposable, and something
+`SKILL.md` deliberately keeps the Orchestrator out of. In an unattended run there is no user to tell.
+TASK-037's Worker wrote the observation "with the one-line remediation **for the Orchestrator to
+raise**" — a handoff to a reader the protocol never appoints.
+
+Sampling shows real content dying there (B15-live: a permanent broker 404 misclassified as
+transient). One survived: TASK-044's `syncFills` observation is now `[PENDING] TASK-045` — raised by
+hand in an interactive session, not by the pipeline. Same shape as item 13: the pipeline produces the
+artifact and throws it away. Natural fix: the Reviewer carries observations into `handoff.md` (which
+the Orchestrator *does* read), and the run digest collects them.
+
+### 27. `## Observations for Future Tasks` is not in the `plan.md` template *(recommended)*
+Two files instruct the Worker to write into a section `worker-plan.md`'s template never defines.
+
+### 28. Item 11's premise is only half true — the Reviewer has no clock *(recommended)*
+Item 11 deletes `SKILL.md`'s self-reported-timestamp caveat because `worker.md` now mandates running
+`date -u +%Y-%m-%dT%H:%M` and pasting stdout. That mandate exists **only in `worker.md`**.
+`reviewer.md` Steps 2/5 and `SKILL.md`'s `dispatched_at` both just say "current ISO timestamp" — so
+Reviewer and Orchestrator timestamps are still composed. Every terminal `status.md` in the corpus
+ends in `:00` seconds, and TASK-032's `DONE` claims `12:05` against review files written at `05:57`.
+Propagate the mandate to `reviewer.md` and to the Orchestrator's `dispatched.md` before deleting the
+caveat — otherwise item 11 deletes a warning that is still accurate for two of the three roles.
+
+### 29. The Reviewer has no crash story *(open)*
+`worker.md` Step 4 gives the Worker `progress.md` and an explicit "your session can end without
+warning". `reviewer.md` has no equivalent. Concretely: a Reviewer killed *after* writing
+`review-round-N.md` but *before* rewriting `status.md` leaves `AWAITING_REVIEW` on disk. The
+re-dispatched Reviewer counts existing files **plus 1** and writes round N+1 — spending a round on a
+review that was already done, and burning the round budget on a death. Needs a rule: if a review file
+for the current round already exists and no Worker has submitted since, replace it rather than
+increment.
+
+### 30. `reviewer.md` never mentions `orchestrator-notes.md` or `progress.md` *(open)*
+Item 14 establishes `orchestrator-notes.md` as the only surviving record of in-session user decisions,
+round-budget corrections, and pre-authorized scope. The Worker is told to honor an `## Interruptions`
+entry. The Reviewer is told nothing — so a Reviewer can block on a deviation the user explicitly
+pre-authorized, or flag a partial tree the Orchestrator already logged. At minimum the Reviewer
+should read it in Step 0.
+
+### 31. Item 1 and item 10 each have a second site in the phase files *(recommended)*
+- Item 1 (round cap): the hardcoded `3` is in `reviewer.md` at Step 5 NEEDS_FIXES, Step 5 BLOCKED,
+  and the "Don't approve because it's round 3" rule — three sites, all needing `MaxRounds` passed in.
+- Item 10 (`SPEC_TOO_AMBIGUOUS`): the cap-of-5 is duplicated in **`review-spec.md`** ("Cap
+  escalations at 5") as well as `reviewer.md`. Item 10's mechanical ask/assume test and its
+  `## Assumed Decisions` table belong in `review-spec.md`'s Triage section, which is where the
+  Reviewer actually makes the call.
+
+### 32. Item 10 collides with an existing `## Assumptions` section *(open)*
+`worker-spec.md` already tells the SPEC Worker to record what it guessed in an `## Assumptions`
+section **inside the spec file**, calling it "the user's cheap second catch". Item 10 puts an
+`## Assumed Decisions` table in `spec-review-round-N.md`, written by the **Reviewer**, surfaced at the
+Phase-0 gate. Both can stand, but they must be reconciled explicitly: the Reviewer's table is the
+gate-time render of decisions *not yet made*, the Worker's section is the durable record of decisions
+*it made*, and each needs to say so or they will drift into two half-kept lists.
+
+### 33. Item 13's digest premise is stronger than recorded *(informational)*
+The terminal artifact exists in **45 of 47** task dirs (`summary.md` × 41 before the rename,
+`handoff.md` × 4 after). A run digest assembled from them has near-complete source coverage.
