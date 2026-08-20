@@ -456,3 +456,107 @@ gate-time render of decisions *not yet made*, the Worker's section is the durabl
 ### 33. Item 13's digest premise is stronger than recorded *(informational)*
 The terminal artifact exists in **45 of 47** task dirs (`summary.md` × 41 before the rename,
 `handoff.md` × 4 after). A run digest assembled from them has near-complete source coverage.
+
+### 34. `/verify` carry-forward is an undocumented carve-out agents invented *(recommended)*
+`review-code.md`: "A green `/verify` is a **precondition for approval** — any failure here is finding
+#1, Critical." `SKILL.md` step 5: the Orchestrator confirms `handoff.md` records a green `/verify`
+and refuses to commit without it. Measured: **21 of 25** CODE Reviewers exercised the runtime surface
+in-session; **3 approved on a carried-forward green from an earlier round**, each stating the reason
+(narrow delta touching one catch clause plus Markdown; fixes touching sync logic and tests only). The
+reasoning is sound and the behavior is probably right — but the protocol forbids it, so three
+approvals were out of compliance, and the Orchestrator's commit gate cannot tell a carried-forward
+green from a fresh one because both render as prose in `## Verification`.
+
+Fix: codify the carve-out (a round whose delta cannot reach any surface the earlier run exercised may
+carry it forward) and require `## Verification` to say *which round* the green came from, so the
+Orchestrator's check has something mechanical to read.
+
+### 35. Do not weaken the Reviewer's independent test run *(informational)*
+Measured: **25 of 25** CODE Reviewers ran the suite themselves via a Bash call; **zero** approved on
+the Worker's claimed results. 17 of 25 defeated Gradle's cache with `cleanTest`/`--rerun-tasks`. One
+went further and ran a mutation test against the Worker's fix, then cleaned up its own DB rows. The
+mandate in `review-code.md` line 1-11 is being honored in full, and it is cheap — see the session-2
+measurement block. This is the strongest-performing instruction in either file; leave it alone.
+
+---
+
+## Session-2 measurement block
+
+Second forensic sweep, 2026-08-20. 452 `.jsonl` files, 419 subagent sidechains, of which **75 are
+`sdlc` Reviewer sessions** (20 SPEC / 30 PLAN / 25 CODE) and **73 Worker** (13 / 32 / 26 / 2
+unclassifiable). Phase determined from the review-file header each session actually wrote.
+
+**1. The Phase-0 contradiction (item 21) is real but has never fired, because Orchestrators
+fabricate the handshake.** In **7 of 7** spec-governed entries the Orchestrator hand-wrote
+`status.md` with `AWAITING_REVIEW` / `phase: SPEC` / `round: 1` *seconds before* dispatching the
+Reviewer, with no Worker having run. **0 of 75** Reviewer sessions ever refused to start — 75/75 read
+`AWAITING_REVIEW` and 75/75 wrote a review. The stop-condition never fired because the Orchestrator
+always satisfied it in advance, by an act nothing in `SKILL.md` prescribes.
+
+Three consequences the fix must absorb:
+- **3 of 7** dispatches used the verbatim template (which never mentions SPEC at all); **4 of 7**
+  improvised the SPEC instructions into the prompt. The template is doing none of the work.
+- **4 of 7** pre-writes carried an obviously invented midnight timestamp (`2026-08-09T00:00:00`,
+  `2026-07-14T00:00:00`, …).
+- **3 Orchestrators stuffed the action into the legacy `dispatched:` key inside `status.md`** — the
+  one field `reviewer.md` Step 0.4 explicitly tells the Reviewer to ignore and strip. The action
+  travelled on a channel the protocol tells the receiver to delete.
+
+**2. The Reviewer's independent verification is honored and cheap.** 25/25 ran the suite; 21/25
+exercised the runtime surface (7 via the `Skill` tool, 14 by executing `verify.md`'s recipe by hand).
+
+| Role / phase | n | median wall | median tool calls |
+|---|---|---|---|
+| Reviewer SPEC | 20 | 5.8 min | 20 |
+| Reviewer PLAN | 30 | 6.7 min | 22 |
+| **Reviewer CODE** | 25 | **12.6 min** | **52** |
+| Worker SPEC | 13 | 5.4 min | 30 |
+| Worker PLAN | 32 | 6.7 min | 32 |
+| **Worker CODE** | 26 | **18.3 min** | **67** |
+
+The full suite self-reports `BUILD SUCCESSFUL in 1m45s–2m08s` — roughly **15–25% of a CODE review**,
+and a CODE review is ~70% of a Worker CODE session. The expensive part of review is diff-reading and
+the runtime `/verify` exercise, not the suite.
+
+**3. Base rate of contest — the number item 4 needs.** Across 191 review files, 138 carry a
+`## Previous Round Follow-Up`:
+
+| Marker | Meaning | Line items |
+|---|---|---|
+| ✅ | Addressed | 640 |
+| 🤝 | Accepted Worker's rationale | **43** (30 files, 20 tasks) |
+| ⚠ | Partial | 5 |
+| ❌ | Re-asserted / still present | **3** (3 files, **2 tasks**) |
+
+Workers wrote **82** `## Review Response — Round N` sections across 46 files. So a rebuttal the
+Reviewer must rule on occurs in ~6.7% of dispositions, and the Reviewer **sides with the Worker 93%
+of the time** (43 of 46).
+
+The severity split is what decides the gate's design: **33 of the 43 accepts were Observations** —
+the Reviewer conceding a no-fix-required item, not a standoff. Genuine standoffs are the 3 ❌s, and
+one of those is not a contest at all but a *regression catch* (TASK-037 round 4: a claim correctly
+removed from `plan.md` in round 1 reappeared in `docs/CONFIGURATION.md` during CODE).
+
+**An adjudicator keyed on ❌ would have fired 3 times in the entire corpus — 2 of 49 tasks, ~once per
+15 rebuttal-bearing rounds.** Keyed on any 🤝-or-❌ it fires in 30 of 138 reviews (~22%), but four
+fifths of those firings would be over Observations. This cuts both ways and the author should see it
+before deciding item 4: the gate is very cheap *and* very rarely useful.
+
+**4. Item 28 is worse than stated, and `worker.md`'s mandate does not cover `status.md`.** The
+`date -u` mandate in `worker.md` Step 4 is scoped to **`progress.md` entries only**; Step 5's
+`status.md` block says just "`current ISO timestamp`". `reviewer.md` has no mandate anywhere.
+
+| | n | median abs. drift | within 5 min | worst |
+|---|---|---|---|---|
+| Composed (no `date` call) | 63 | **48 min** | 5 (8%) | 564 min |
+| Ran a `date` call | 10 | **3 min** | 6 (60%) | 326 min |
+
+**62 of 75 Reviewers composed the timestamp**; 65 of 73 wrote at least one round `:00`/`:30`/
+`T00:00:00` value. Workers are barely better — **18 of 73** ran `date` at all. Worst case: a TASK-027
+Reviewer wrote `updated: 2026-08-09T16:25:00` at a real `07:00:27Z`, **+9h24m**, and five sessions in
+that run drifted 400–560 min *in the same direction* — a consistent-looking invented afternoon.
+
+`status.md` is the Orchestrator's only handshake artifact. Item 11 must therefore extend the mandate
+to `reviewer.md`, to `worker.md` Step 5, and to the Orchestrator's `dispatched_at` **before** the
+caveat in `SKILL.md` is deleted — otherwise the caveat is deleted while remaining true for the field
+that matters most.
