@@ -395,7 +395,7 @@ Item 12 must therefore also move the Reviewer's review scope, not only the Orche
 scope — otherwise it converts a stale-list problem into an unreviewed-code problem. The corpus shows
 unaccounted changes are real and recurring (17 review files across 6 tasks report them).
 
-### 26. `## Observations for Future Tasks` is a dead-letter box *(gap confirmed by the author; fix open)*
+### 26. `## Observations for Future Tasks` is a dead-letter box *(agreed — alternative A)*
 `worker.md` and `worker-code.md` both say: don't fix adjacent bugs, note them in `plan.md` under
 `## Observations for Future Tasks` "and tell the user at the end of the session". **34 of 47**
 `plan.md` files carry that section — and `plan.md` is gitignored, disposable, and something
@@ -451,13 +451,14 @@ wrote observations; one became a task. If the content is not worth a channel, th
 stop asking for it rather than to build plumbing. Against this: the sample is not noise — the one
 that escaped became TASK-045, and B15-live's 404 finding is a live-path defect that is still unfiled.
 
-*Recommendation:* **A**, because it is the only option that adds no writer and no artifact, and the
-digest is already being built. Decision open.
+**Decided: A.** The Reviewer transcribes observations from `plan.md` into an `## Observations`
+section of the `handoff.md` template in `reviewer.md` Step 5. `handoff.md` keeps exactly one writer.
+B, C and D are rejected.
 
 ### 27. `## Observations for Future Tasks` is not in the `plan.md` template *(recommended)*
 Two files instruct the Worker to write into a section `worker-plan.md`'s template never defines.
 
-### 28. Item 11's premise is only half true — the Reviewer has no clock *(recommended)*
+### 28. Item 11's premise is only half true — the Reviewer has no clock *(agreed — see item 38 for the final form)*
 Item 11 deletes `SKILL.md`'s self-reported-timestamp caveat because `worker.md` now mandates running
 `date -u +%Y-%m-%dT%H:%M` and pasting stdout. That mandate exists **only in `worker.md`**.
 `reviewer.md` Steps 2/5 and `SKILL.md`'s `dispatched_at` both just say "current ISO timestamp" — so
@@ -663,7 +664,7 @@ entire corpus.** The single `-04:00` is Eastern DST — `updated: 2026-08-07T01:
 a real `01:00:15Z` — most likely bleed from Ricci's own `NY_ZONE` constants, which is a
 subject-matter contamination worth noting but not a timezone policy problem.
 
-### 36. The invented clock is inherited through `status.md` *(recommended — supersedes half of item 28)*
+### 36. The invented clock is inherited through `status.md` *(agreed — supersedes half of item 28)*
 The ramp in test 4 is not 10 independent guesses. Each Reviewer read its predecessor's invented
 `updated:` value out of `status.md`, treated it as the current time, and advanced it by a
 plausible-feeling interval — a **compounding narrative clock** that ran 3x real time across five
@@ -679,7 +680,7 @@ Scope for the item-11 edit, now confirmed: `reviewer.md` Steps 2 and 5, `worker.
 `status.md` block, which the existing Step 4 mandate does **not** reach), and `SKILL.md`'s
 `dispatched_at`. Only after all four does deleting the `SKILL.md` caveat become honest.
 
-### 37. `worker.md` L17 offers a passive channel for something that requires a stop *(recommended)*
+### 37. `worker.md` L17 offers a passive channel for something that requires a stop *(agreed)*
 > "It is not the user — it cannot answer questions mid-session, so anything you need decided goes in
 > writing, into the artifacts."
 
@@ -692,10 +693,12 @@ situations into one instruction, and gets the blocking one wrong:
   which is the one outcome the status vocabulary was built to prevent.
 - **Noticed but forbidden to act on** → never blocks; needs the carry-forward channel of item 26.
 
-Fix: split the sentence along that line and name the destination for each. Do not route open
-decisions to `handoff.md` — that is the escalation path, and it is `status.md`.
+**Decided:** split the sentence along exactly that line and name the destination for each —
+can't-proceed goes to `status.md` as `BLOCKED` / `NEEDS_HUMAN_DECISION` and the Worker **stops**;
+noticed-but-out-of-scope goes to the item-26 carry-forward channel. Neither destination is
+`handoff.md`.
 
-### 38. Mandate the command, not the prohibition — and require the `Z` *(recommended; supersedes the wording in items 28/36)*
+### 38. Mandate the command, not the prohibition — and require the `Z` *(agreed; supersedes the wording in items 28/36)*
 The author's objection is correct: "never write a timestamp you composed yourself" is a prohibition
 with no action attached, and an agent that has nothing else to do will compose anyway — session 53
 proves it did so with the true clock printed four times in its own context.
