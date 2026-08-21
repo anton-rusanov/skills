@@ -799,3 +799,94 @@ deadlocks. Recording here so the item-14 fix is understood as unblocking Step 0,
 **Keep unchanged:** "never delete or revert it" (L69-72). It is the right rule, the reasoning given is
 correct, and destroying a parallel session's uncommitted work is the one error in this section that
 cannot be undone.
+
+### Author decisions on Step 0 (2026-08-21)
+
+- **39 — agreed.** The Orchestrator does the `.gitignore` check once at run setup. Step 0.1's
+  instruction is removed from `worker.md` entirely, so the Worker never makes an uncommitted edit it
+  would later have to classify.
+- **40 — corrected by the author; my proposal was wrong.** "Collapse to paths" is **rejected**: the
+  skill is used on other projects that genuinely have multiple submodules, and the multi-repo
+  machinery must stay. What goes is the *project-specific naming* leaking into a generic skill.
+
+  Scope of that strip — 6 lines, all traceable to a different project:
+
+  | File | Line | Leak |
+  |---|---|---|
+  | `references/worker-plan.md` | 117 | "`backend`, `frontend`, `mls-integration`, or `(umbrella)`" |
+  | `references/worker-plan.md` | 109-110 | `backend` rows in the Impact Map example |
+  | `references/reviewer.md` | 158 | "backend ./gradlew test: pass; frontend npm test: pass" |
+  | `references/worker.md` | 162 | `listing_comps` migration, `flywayValidate` |
+  | `references/worker.md` | 164 | `wire/client-detail-with-comps.json` |
+
+  The honest reconciliation of my finding with the author's call: repo-scoping stays and is correct
+  where repos exist; what the measurement actually shows is that **in a single-repo project the repo
+  check degenerates to a whole-tree check**, so the *legitimacy list* — not the scoping — is carrying
+  all of the weight. That raises the priority of item 42 rather than lowering the value of the
+  machinery. Say the degenerate case out loud in the text instead of pretending the scoping bounds
+  something it does not.
+- **41 — agreed, reduce.** Step 0.2 is too verbose. Verbosity comes out of the prose, not the
+  mechanism: keep the legitimacy list, the action-to-allowed-changes table, the revival rules and
+  "never delete or revert it"; cut the explanatory padding around them.
+- **42 — agreed.** Extend the legitimacy list to cover the task's own inputs: a newly-added (not just
+  newly-flipped) `ROADMAP.md` row, together with its untracked governing spec.
+- **43 — agreed.** Item 14 is load-bearing for Step 0 revival, not tidying.
+
+## `worker.md` Steps 1-3
+
+### 44. Item 7's archaeology has three sites, not one *(recommended)*
+Item 7 agreed to delete the "earlier versions of this skill appended `dispatched:` / `dispatched_at:`"
+passage from `SKILL.md`. The same archaeology is restated in **`worker.md` Step 2** ("If the existing
+file carries legacy `dispatched:` / `dispatched_at:` keys, let them go…") and **`reviewer.md` Step
+0.4** ("Legacy `dispatched:` / `dispatched_at:` keys inside `status.md` are obsolete; ignore them and
+drop them…"). Delete all three together.
+
+One caveat the deletion must not lose: **3 of 7 Phase-0 Orchestrators used the legacy `dispatched:`
+key as their only channel for the action string** (session-2 measurement block, point 1). Remove the
+"strip it" instruction and those keys survive into the review; remove the archaeology *and* fix
+item 21's dispatch channel and the situation cannot arise. Sequence the two edits together.
+
+### 45. Item 6's `round:` warning has three sites too *(recommended)*
+The inline warning `round: <current PHASE round — resets to 1 each phase, NOT the review-round-N
+filename counter>` sits in `worker.md` Step 2's template as well as in `SKILL.md`. Item 6 deletes the
+cause; all three copies of the warning go with it (see also item 24 for the two round-counting rules
+that are unexecutable today).
+
+### 46. Three different agents create `status.md` and nothing arbitrates *(open)*
+- `worker.md` Step 2: "Create `.agents/sdlc/tasks/<TASK-ID>/` if it doesn't exist and write
+  `status.md`."
+- `SKILL.md` step 1: the Orchestrator creates the task directory.
+- Measured: in **7 of 7** spec-governed runs the Orchestrator also wrote `status.md` itself, because
+  Phase 0 dispatches a Reviewer first (item 21).
+
+Whatever item 21 settles, it has to name a single owner for the *creation* of `status.md` and say what
+the other two do when they find it already present. Today all three write it and the last writer wins.
+
+### 47. Two task selectors, one rulebook *(recommended)*
+`worker.md` Step 1: "Asked for 'the next task' → the first `[PENDING]` task." `SKILL.md`'s loop has
+its own selection logic, and in this project `docs/AUTONOMOUS_RUNS.md` adds five disqualifiers
+(schema migration, long-running measurement, new dependency, live money-path during a soak,
+unresolved design decision in the task body) plus the "eligible is a checkable test" rule.
+
+A Worker invoked directly with "work on the next roadmap task" applies none of that — it takes the
+first `[PENDING]` row it sees. The eligibility rules live in the project's docs, which `worker.md`
+Step 0.4 does tell it to read, but nothing connects "picking a task" to "checking eligibility".
+Either route selection exclusively through the Orchestrator, or have Step 1 say that project rules may
+disqualify an otherwise-`[PENDING]` task.
+
+### 48. The Worker is told to read `orchestrator-notes.md` for only one of its four purposes *(recommended)*
+Step 0.2 sends the Worker to `orchestrator-notes.md` for exactly one thing: an `## Interruptions`
+entry authorizing a dirty-tree start. Item 14 establishes that the file also holds **in-session user
+decisions** (skip Phase 0, take fix (a) not (b), model sizing), **round-budget and round-counter
+corrections**, and **cross-phase carry-forward and pre-authorized scope**.
+
+A Worker that never reads those can re-litigate a decision the user already made, or implement (b)
+after the user said (a). Same gap as item 30 on the Reviewer side, and the fix is the same shape: read
+it in Step 0, not only when reviving. `SKILL.md`'s recovery section already treats it as "the only
+place earlier sessions' decisions survive" — the subagents are simply never told.
+
+### 49. `Depends on:` is checked but never re-checked *(informational)*
+Step 1 requires every declared dependency to be `[DONE]` or the Worker blocks with
+`DEPENDENCY_NOT_MET`, and `references/roadmap-spec.md:58` defines the syntax. This is sound and the
+only note is that the check happens once, in the first Worker of the task; a dependency that regresses
+to `[BLOCKED]` mid-pipeline is not noticed. Low value to fix; recording so it is not rediscovered.
