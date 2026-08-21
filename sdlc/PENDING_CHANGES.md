@@ -16,6 +16,65 @@ walked** — that is where the next session picks up.
 
 ---
 
+## Index
+
+One line per item, so a bare number is resolvable without scrolling.
+
+| # | Item |
+|---|---|
+| 1 | One authority for the round cap |
+| 2 | The ROADMAP `[DONE]` flip belongs to the Orchestrator |
+| 3 | Handle the in-session `killed` notification |
+| 4 | A real gate on Reviewer errors |
+| 5 | Reviewer trigger table is missing the CODE-only trigger |
+| 6 | Per-phase review filenames |
+| 7 | Delete the archaeology |
+| 8 | `CreatePR` defaults to false and is never asked at the start |
+| 9 | Drop the TASK-030 anecdote from the commit-the-flip instruction |
+| 10 | `SPEC_TOO_AMBIGUOUS` — keep the name, change the behavior |
+| 11 | Delete the self-reported-timestamp caveat |
+| 12 | Staging: the Impact Map is the wrong staging list |
+| 13 | Branch policy becomes an input; legibility is served by a digest, not a PR |
+| 14 | `orchestrator-notes.md` — keep it, fix four defects |
+| 15 | Record process identity, not session identity, in `dispatched.md` |
+| 16 | Delete the duplicated async note |
+| 17 | Watchdog escalation must re-derive elapsed time from the clock |
+| 18 | Stop trying to detect death; act with the `agent_id` — `SendMessage` first |
+| 19 | The current watchdog prompt actively prevents its own fix |
+| 20 | Say plainly that the skill cannot fix process death |
+| 21 | Phase 0's first dispatch contradicts the Reviewer's own start-up guard |
+| 22 | There is no channel for naming the governing spec |
+| 23 | Item 6 lands harder than recorded — two rival conventions, not one improvisation |
+| 24 | `worker.md` Step 5's round rule is arithmetically wrong |
+| 25 | Files outside the Impact Map are reported but never reviewed — and then staged |
+| 26 | `## Observations for Future Tasks` is a dead-letter box |
+| 27 | `## Observations for Future Tasks` is not in the `plan.md` template |
+| 28 | Item 11's premise is only half true — the Reviewer has no clock |
+| 29 | The Reviewer has no crash story |
+| 30 | `reviewer.md` never mentions `orchestrator-notes.md` or `progress.md` |
+| 31 | Item 1 and item 10 each have a second site in the phase files |
+| 32 | Item 10 collides with an existing `## Assumptions` section |
+| 33 | Item 13's digest premise is stronger than recorded |
+| 34 | `/verify` carry-forward is an undocumented carve-out agents invented |
+| 35 | Do not weaken the Reviewer's independent test run |
+| 36 | The invented clock is inherited through `status.md` |
+| 37 | `worker.md` L17 offers a passive channel for something that requires a stop |
+| 38 | Mandate the command, not the prohibition — and require the `Z` |
+| 39 | Step 0.1 tells the Worker to make an edit Step 0.2 would later call debris |
+| 40 | The per-repo scoping is a no-op in this project |
+| 41 | Step 0.2 has never fired — not once |
+| 42 | The legitimacy list is missing "the task's own ROADMAP row is new" |
+| 43 | Step 0's revival path depends on a file nothing creates |
+| 44 | Item 7's archaeology has three sites, not one |
+| 45 | Item 6's `round:` warning has three sites too |
+| 46 | Three different agents create `status.md` and nothing arbitrates |
+| 47 | A self-selecting Worker takes a task without locking it |
+| 48 | The Worker is told to read `orchestrator-notes.md` for only one of its four purposes |
+| 49 | `Depends on:` is checked but never re-checked |
+| 50 | Item 2 has a fourth site — and it is a *spec* file |
+
+---
+
 ## Agreed
 
 ### 1. One authority for the round cap
@@ -862,17 +921,27 @@ that are unexecutable today).
 Whatever item 21 settles, it has to name a single owner for the *creation* of `status.md` and say what
 the other two do when they find it already present. Today all three write it and the last writer wins.
 
-### 47. Two task selectors, one rulebook *(recommended)*
-`worker.md` Step 1: "Asked for 'the next task' → the first `[PENDING]` task." `SKILL.md`'s loop has
-its own selection logic, and in this project `docs/AUTONOMOUS_RUNS.md` adds five disqualifiers
-(schema migration, long-running measurement, new dependency, live money-path during a soak,
-unresolved design decision in the task body) plus the "eligible is a checkable test" rule.
+### 47. A self-selecting Worker takes a task without locking it *(recommended — rewritten)*
+`worker.md` Step 1: "Asked for 'the next task' → the first `[PENDING]` task." `worker.md`'s own
+"What NOT to do": "**Don't modify ROADMAP.md status.** The Orchestrator owns that."
 
-A Worker invoked directly with "work on the next roadmap task" applies none of that — it takes the
-first `[PENDING]` row it sees. The eligibility rules live in the project's docs, which `worker.md`
-Step 0.4 does tell it to read, but nothing connects "picking a task" to "checking eligibility".
-Either route selection exclusively through the Orchestrator, or have Step 1 say that project rules may
-disqualify an otherwise-`[PENDING]` task.
+Those two combine badly. A Worker invoked directly — not through the Orchestrator — picks a task and
+is forbidden from marking it `[IN_PROGRESS]`. Nothing else marks it either, because no Orchestrator
+is running. So the task is worked on while every other session still reads it as free to take.
+
+That is the identical failure `SKILL.md` step 1 spends a paragraph on: TASK-030 ran to completion with
+the lock uncommitted and "for two and a half hours every other session saw it as free to take." The
+Orchestrator path was hardened against it; the direct-Worker path still has it wide open, and there
+the lock is not merely uncommitted but never written at all.
+
+Two ways out: forbid self-selection (a directly-invoked Worker must be given a task ID, and "the next
+task" is an Orchestrator-only capability), or carve an exception into the no-ROADMAP-writes rule so a
+self-selecting Worker sets and commits the lock exactly as the Orchestrator would.
+
+*(An earlier draft of this item argued the conflict was with the eligibility rules in
+`docs/AUTONOMOUS_RUNS.md`. Withdrawn: that document is a work in progress started in this same
+session and is not authoritative. The lock conflict above is internal to the skill and stands on its
+own.)*
 
 ### 48. The Worker is told to read `orchestrator-notes.md` for only one of its four purposes *(recommended)*
 Step 0.2 sends the Worker to `orchestrator-notes.md` for exactly one thing: an `## Interruptions`
