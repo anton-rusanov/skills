@@ -395,7 +395,7 @@ Item 12 must therefore also move the Reviewer's review scope, not only the Orche
 scope — otherwise it converts a stale-list problem into an unreviewed-code problem. The corpus shows
 unaccounted changes are real and recurring (17 review files across 6 tasks report them).
 
-### 26. `## Observations for Future Tasks` is a dead-letter box *(recommended)*
+### 26. `## Observations for Future Tasks` is a dead-letter box *(gap confirmed by the author; fix open)*
 `worker.md` and `worker-code.md` both say: don't fix adjacent bugs, note them in `plan.md` under
 `## Observations for Future Tasks` "and tell the user at the end of the session". **34 of 47**
 `plan.md` files carry that section — and `plan.md` is gitignored, disposable, and something
@@ -404,10 +404,55 @@ TASK-037's Worker wrote the observation "with the one-line remediation **for the
 raise**" — a handoff to a reader the protocol never appoints.
 
 Sampling shows real content dying there (B15-live: a permanent broker 404 misclassified as
-transient). One survived: TASK-044's `syncFills` observation is now `[PENDING] TASK-045` — raised by
-hand in an interactive session, not by the pipeline. Same shape as item 13: the pipeline produces the
-artifact and throws it away. Natural fix: the Reviewer carries observations into `handoff.md` (which
-the Orchestrator *does* read), and the run digest collects them.
+transient). Exactly one survived: TASK-044's `syncFills` observation is now `[PENDING] TASK-045` —
+raised by hand in an interactive session, not by the pipeline.
+
+**Author's correction (accepted):** this is a *carry-forward* problem, and it must not be conflated
+with escalation. See item 37. Observations are things the Worker noticed and is forbidden to act on;
+they never block. Open decisions are things the Worker cannot proceed without; they always block.
+Different problems, different channels.
+
+**Author's question: what does co-authoring `handoff.md` cost, and what are the alternatives?**
+
+The cost is real and it is the failure mode this skill has already been bitten by. `handoff.md` today
+has exactly one writer, at exactly one moment (Reviewer, at terminal verdict). Adding a second writer
+buys three hazards:
+
+- **Silent clobber.** The Reviewer writes `handoff.md` wholesale from a template. A Worker section
+  written earlier in the round is simply gone — no conflict, no error. This is item 14 defect 2 with
+  the sign flipped: there, `cat >>` appends produced duplicate headings and a successor read the
+  wrong one; here, a template rewrite produces a missing section and nobody reads anything.
+- **Invisible mid-flight state.** `handoff.md` is terminal by construction. A file titled
+  `# Task Handoff` existing during round 1 is exactly the TASK-030 class of bug: a fresh Orchestrator
+  rebuilding from disk sees a completion artifact for work that is not complete.
+- **Ordering.** The Reviewer's write is always last. Anything the Worker puts there has to survive an
+  agent that has no instruction to preserve it.
+
+Four alternatives, ranked:
+
+**A — Reviewer transcribes; `handoff.md` keeps one writer.** The Reviewer already reads `plan.md` in
+full (Step 1.1), observations included. Add an `## Observations` section to the Step 5 handoff
+template, carried across. *Cost:* one template section. No new writer, no new file, no new read in
+`SKILL.md`. The digest (item 13) then picks it up for free. *Downside:* the Reviewer is a filter and
+may drop or reword — arguably correct, since it is the skeptical reader, but it is a real loss of
+fidelity.
+
+**B — A separate `observations.md`, single writer.** Worker owns it; the Orchestrator collects it
+into the digest. *Cost:* one more artifact in a directory that already carries eight file types, and
+item 14's lesson is that an artifact without a template and a create instruction drifts into six
+vocabularies. *Upside:* preserves the Worker's exact words.
+
+**C — Worker appends a `[PENDING]` row to `ROADMAP.md`. Rejected.** It drives straight through two
+existing rails: `worker.md`'s "don't modify ROADMAP.md status — the Orchestrator owns that", and
+`AUTONOMOUS_RUNS.md`'s "the loop may never promote a finding into a new task."
+
+**D — Delete the instruction and accept the loss.** Belongs on the table honestly. 34 of 47 tasks
+wrote observations; one became a task. If the content is not worth a channel, the cheap fix is to
+stop asking for it rather than to build plumbing. Against this: the sample is not noise — the one
+that escaped became TASK-045, and B15-live's 404 finding is a live-path defect that is still unfiled.
+
+*Recommendation:* **A**, because it is the only option that adds no writer and no artifact, and the
+digest is already being built. Decision open.
 
 ### 27. `## Observations for Future Tasks` is not in the `plan.md` template *(recommended)*
 Two files instruct the Worker to write into a section `worker-plan.md`'s template never defines.
@@ -633,3 +678,50 @@ never derive `updated:` from any timestamp you read on disk.
 Scope for the item-11 edit, now confirmed: `reviewer.md` Steps 2 and 5, `worker.md` Step 5 (the
 `status.md` block, which the existing Step 4 mandate does **not** reach), and `SKILL.md`'s
 `dispatched_at`. Only after all four does deleting the `SKILL.md` caveat become honest.
+
+### 37. `worker.md` L17 offers a passive channel for something that requires a stop *(recommended)*
+> "It is not the user — it cannot answer questions mid-session, so anything you need decided goes in
+> writing, into the artifacts."
+
+The author's correction is right and it sharpens the defect. That sentence collapses two different
+situations into one instruction, and gets the blocking one wrong:
+
+- **Cannot proceed without an answer** → the Worker must **stop**. `BLOCKED` with reason
+  `NEEDS_HUMAN_DECISION` already exists in the vocabulary and already reaches a human through the
+  Orchestrator. Telling that Worker to "write it into the artifacts" invites it to guess and continue,
+  which is the one outcome the status vocabulary was built to prevent.
+- **Noticed but forbidden to act on** → never blocks; needs the carry-forward channel of item 26.
+
+Fix: split the sentence along that line and name the destination for each. Do not route open
+decisions to `handoff.md` — that is the escalation path, and it is `status.md`.
+
+### 38. Mandate the command, not the prohibition — and require the `Z` *(recommended; supersedes the wording in items 28/36)*
+The author's objection is correct: "never write a timestamp you composed yourself" is a prohibition
+with no action attached, and an agent that has nothing else to do will compose anyway — session 53
+proves it did so with the true clock printed four times in its own context.
+
+Note that `worker.md` Step 4 **already has the right form** and it works: the literal command, plus
+"paste its stdout into the entry **unedited** — do not round it, adjust it, or reuse one from an
+earlier entry." The 8 sessions that ran `date` for the timestamp landed at +37, +3, +2, +2, −1, −1,
+−1, −1. The defect is **scope, not wording**. So the edit is to port that paragraph *verbatim,
+command included* to the three sites it does not reach — `worker.md` Step 5, `reviewer.md` Steps 2
+and 5, `SKILL.md`'s `dispatched_at` — and to add item 36's anti-seeding clause.
+
+**New, and it raises the stakes: the devcontainer is being switched to `TZ=America/Los_Angeles`.**
+Every measurement in the session-2 block was taken on a container where `date` == `date -u`, so a
+bare `date` was harmless. After the rebuild it will not be. An agent that runs bare `date` gets
+Pacific and writes it into a field every consumer reads as UTC — a silent 7-hour error, and
+**precisely the ambient-zone bug Ricci itself is carrying as audit #43**. The skill would be
+reproducing in its own bookkeeping the defect its own pipeline exists to fix.
+
+Two consequences:
+
+1. The guidance must be the exact string **`date -u +%Y-%m-%dT%H:%M`**. Never "read the clock", never
+   "the current timestamp", never bare `date`.
+2. **Require the `Z` suffix on every written value.** Today **83 of 144** writes are naked, and on a
+   UTC container naked was merely sloppy. On a Pacific container naked is ambiguous, and a mis-zoned
+   value becomes undetectable after the fact. Mandating `Z` costs one character and converts a silent
+   class of error into a visible one. (Corpus support: the corpus already contains one non-UTC value,
+   `2026-08-07T01:10:00-04:00`, written at a real `01:00:15Z` — Eastern, almost certainly bleed from
+   Ricci's own `NY_ZONE` constants into the agent's own bookkeeping. It was detectable *only* because
+   it carried an offset.)
