@@ -890,3 +890,20 @@ Step 1 requires every declared dependency to be `[DONE]` or the Worker blocks wi
 `DEPENDENCY_NOT_MET`, and `references/roadmap-spec.md:58` defines the syntax. This is sound and the
 only note is that the check happens once, in the first Worker of the task; a dependency that regresses
 to `[BLOCKED]` mid-pipeline is not noticed. Low value to fix; recording so it is not rediscovered.
+
+### 50. Item 2 has a fourth site — and it is a *spec* file *(recommended; extends agreed item 2)*
+Item 2 named three documents disagreeing about who flips `ROADMAP.md` to `[DONE]`. There is a fourth,
+and it is the one that reads as normative: `references/roadmap-spec.md:48-50`, under the heading
+**"Who updates what"** —
+
+> "the Orchestrator sets `[PENDING]` → `[IN_PROGRESS]` and `[IN_PROGRESS]` → `[BLOCKED]`; the
+> **Reviewer** sets `[IN_PROGRESS]` → `[DONE]`, but only when approving the CODE phase."
+
+It sides with `reviewer.md` against `SKILL.md` and `worker.md`, and because it lives in the file
+called "ROADMAP.md Specification" it is where an agent resolving the conflict would reasonably go to
+settle it. Stripping the flip from `reviewer.md` Step 5 without fixing this line leaves the
+contradiction intact and moves it somewhere more authoritative.
+
+While in that paragraph: it also assigns `[IN_PROGRESS]` → `[BLOCKED]` to the Orchestrator, which
+matches `SKILL.md`'s blocked path — except `SKILL.md` says to revert the heading to **`[PENDING]`**,
+not to `[BLOCKED]`. A second, quieter disagreement in the same sentence.
