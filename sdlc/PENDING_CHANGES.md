@@ -728,3 +728,74 @@ Two consequences:
    `2026-08-07T01:10:00-04:00`, written at a real `01:00:15Z` — Eastern, almost certainly bleed from
    Ricci's own `NY_ZONE` constants into the agent's own bookkeeping. It was detectable *only* because
    it carried an offset.)
+
+## `worker.md` Step 0 — Pre-flight
+
+### 39. Step 0.1 tells the Worker to make an edit Step 0.2 would later call debris *(open)*
+> "**`.agents/sdlc/` must be gitignored.** If `.gitignore` doesn't cover it, add it."
+
+That edit is an uncommitted source change, and `.gitignore` appears nowhere in Step 0.2's list of
+legitimate dirty paths. So the next Worker dispatched on the task sees a modified `.gitignore`,
+applies its own rules, and blocks with `DIRTY_WORKING_TREE`. Worse, it never clears: the Orchestrator
+stages "exactly the paths in the plan's `## Impact Map`, plus the governing spec", and `.gitignore`
+is in neither, so the edit is never committed and stays dirty for the life of the checkout.
+
+Moot in Ricci — `.gitignore:45` already covers `/.agents/sdlc/` — but it is a live trap in exactly
+the situation Step 0.1 exists for: a project running the pipeline for the first time.
+
+Options: have the **Orchestrator** do it once at run setup (it already commits the ROADMAP lock on
+its own, so it has a committing path); or keep it in the Worker and add `.gitignore` to both the
+legitimacy list and the staging list.
+
+### 40. The per-repo scoping is a no-op in this project *(open)*
+Step 0.2 scopes the tree check to "each repo named in the plan's `## Impact Map`" and grants
+exclusivity "only over the repos in its Impact Map". Measured: **69 Impact Map rows across the task
+corpus carry exactly one repo value** (`ricci` × 57, `Ricci` × 12). Ricci is a single repository —
+the only nested git is the `.agents/skills` submodule. So "check `git status` in each repo in the
+Impact Map" resolves to "check the whole tree", and the exclusivity claim covers everything.
+
+The paragraph reads as if it bounds blast radius; here it bounds nothing. The generic multi-repo
+machinery (`backend`, `frontend`, `mls-integration`, `(umbrella)`) is inherited from a different
+project shape. If scoping is meant to do real work in a single-repo project it has to be **path**-
+scoped, not repo-scoped — which is also the granularity item 12's `changed-files.md` produces.
+
+### 41. Step 0.2 has never fired — not once *(open)*
+**0 of 73 Worker sessions** ever wrote `DIRTY_WORKING_TREE` into `status.md`. The string appears in
+84 transcripts only because `worker.md` itself contains it and every Worker reads `worker.md`; no
+session ever latched the block. Step 0.2 is ~55 lines — roughly a third of `worker.md` — of machinery
+with zero recorded activations.
+
+Three readings, and the corpus does not fully separate them: it is purely preventive (Workers read it
+and stay clean); it is dead weight; or Workers are routed around it. Item 42 is evidence for the
+third.
+
+### 42. The legitimacy list is missing "the task's own ROADMAP row is new" *(recommended)*
+Step 0.2 legitimises the Orchestrator's `[PENDING]` → `[IN_PROGRESS]` **flip** of an existing row and
+uncommitted edits to the **governing spec**. It does not cover the case where the ROADMAP row itself
+is new and uncommitted — which is what happens whenever a spec and its task are authored together,
+immediately before the run.
+
+Measured: the TASK-028 Orchestrator had to override the rule in the dispatch prompt, verbatim —
+
+> "Context: the governing spec is `spec/spec-20260809-…md` (untracked, and the ROADMAP.md edit adding
+> TASK-028 is uncommitted — **these are the task's own inputs, NOT a dirty-tree failure**)."
+
+An Orchestrator talking a Worker out of its own pre-flight rule, in-band, is the same anti-pattern as
+item 21's fabricated handshake: the protocol is wrong, and the Orchestrator improvises past it every
+time rather than the rule being fixed. Add the case to the list.
+
+Note this also interacts with `SKILL.md` step 1, which says to commit the `[IN_PROGRESS]` flip
+immediately and on its own. A *new* row cannot be committed that way without also committing the task
+description the user may still be editing.
+
+### 43. Step 0's revival path depends on a file nothing creates *(informational — cost of items 14.1/14.2)*
+The only thing that licenses a Worker to start against a partial tree is an `## Interruptions` entry
+in `orchestrator-notes.md` "naming your phase". Item 14 already records that nothing instructs the
+Orchestrator to create that file (defect 1) and that the empty `_(none)_` placeholder sorts *before*
+the real entry in the two files that have one (defect 2). Step 0 is where that cost is actually paid:
+a Worker scanning for authorization finds `_(none)_`, concludes there was no interruption, and
+deadlocks. Recording here so the item-14 fix is understood as unblocking Step 0, not as tidying.
+
+**Keep unchanged:** "never delete or revert it" (L69-72). It is the right rule, the reasoning given is
+correct, and destroying a parallel session's uncommitted work is the one error in this section that
+cannot be undone.
