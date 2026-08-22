@@ -1019,3 +1019,102 @@ set and commit the lock itself".
 the branch.** `worker.md` Step 1 loses the "asked for 'the next task'" path; a Worker is always
 dispatched with a task ID and stops loudly without one. `SKILL.md`'s mode table — the WORKER trigger
 rows and the "otherwise WORKER" tie-break — is edited in the same change.
+
+## `worker.md` Steps 4-5 and "What NOT to do"
+
+### 51. `progress.md` adoption tracks `orchestrator-notes.md` exactly *(informational — supports keeping both)*
+Both artifacts entered the skill on 2026-08-09 (`d720904`). Of the 9 task directories created on or
+after that date:
+
+| Task | Created | `progress.md` | `orchestrator-notes.md` |
+|---|---|---|---|
+| TASK-027 | 08-09 | no | no |
+| TASK-028 | 08-10 | no | no |
+| TASK-031 | 08-10 | no | no |
+| TASK-032 | 08-12 | **yes** | **yes** |
+| TASK-037 | 08-13 | **yes** | **yes** |
+| TASK-038 | 08-14 | **yes** | **yes** |
+| TASK-044 | 08-15 | **yes** | **yes** |
+| TASK-030 | 08-16 | **yes** | **yes** |
+| TASK-036 | 08-16 | **yes** | **yes** |
+
+**6 of 6 since 2026-08-12**, and the two files co-occur perfectly — never one without the other. The
+three misses are the first two days after the commit landed. Same shape as item 14's finding for
+`orchestrator-notes.md`, and it settles the equivalent question for `progress.md`: it is adopted, not
+ignored. The 41 older directories predate both and prove nothing.
+
+### 52. The Worker is told to emit a block reason with no field and no template *(recommended)*
+`worker.md` tells the Worker to block in four places — `DIRTY_WORKING_TREE` (Step 0.2, three times)
+and `DEPENDENCY_NOT_MET` (Step 1). Step 5 then gives it exactly one `status.md` template, the
+`AWAITING_REVIEW` success shape, with five keys and **no `reason:` line**. Grepping the whole skill,
+`reason:` appears in exactly one place: `reviewer.md:203`.
+
+So a blocking Worker has to invent both the field and the file shape. Give `worker.md` Step 5 a
+`BLOCKED` template with `reason: <DIRTY_WORKING_TREE | DEPENDENCY_NOT_MET>`, matching the Reviewer's.
+
+### 53. The Orchestrator relabels a correct Worker block as a protocol failure *(recommended)*
+`SKILL.md` round loop: "Worker returned anything but `AWAITING_REVIEW` → **blocked**, reason
+`WORKER_DID_NOT_SIGNAL`."
+
+A Worker that blocks *correctly* — dependency not met, tree genuinely dirty — has done exactly what
+Step 0 and Step 1 instruct, and the Orchestrator overwrites its diagnosis with
+`WORKER_DID_NOT_SIGNAL`, which means the opposite: the Worker failed to report. The true reason is
+sitting in `status.md` and gets discarded, and the human sees a handshake failure instead of "TASK-019
+isn't `[DONE]` yet".
+
+Fix: split the branch. `BLOCKED` from a Worker propagates the Worker's own `reason:`;
+`WORKER_DID_NOT_SIGNAL` is reserved for what it says — `IN_PROGRESS` left behind, or no `status.md`
+change at all. This pairs with item 52: the Orchestrator can only propagate a reason the Worker had a
+field to write.
+
+### 54. The `date` command needs the `Z` baked in *(refines agreed item 38)*
+Item 38 agreed to port `worker.md` Step 4's literal command to the other three sites and to require an
+explicit `Z`. Concretely the command string changes:
+
+```
+date -u +%Y-%m-%dT%H:%M     ->     date -u +%Y-%m-%dT%H:%MZ
+```
+
+`Z` is not a `strftime` specifier, so it emits literally. One edit, and it makes every generated
+timestamp self-describing at the moment of creation rather than relying on an agent to append the
+suffix by hand. Update the existing Step 4 occurrence too, not just the three new sites.
+
+### 55. "What NOT to do" restates phase-file rules and is read where they cannot apply *(recommended)*
+Five of the eight bullets are code-quality rules stated again, usually more precisely, in the phase
+files:
+
+| Rule | Also in |
+|---|---|
+| no defensive code for impossible conditions | `worker-code.md`, `review-code.md` |
+| no dead or commented-out code | `worker-code.md`, `review-code.md` |
+| don't log credentials/tokens/PII | `worker-code.md`, `worker-plan.md`, `review-code.md`, `review-plan.md` |
+| imprecise numeric types for money | `review-code.md` |
+| don't fix adjacent bugs | `worker-code.md` |
+
+`worker.md` is read by every Worker in every phase, so a SPEC Worker editing a Markdown file under
+`spec/` reads five rules about dead code, null checks and `BigDecimal` that cannot apply to it. The
+author's verbosity call on Step 0 (item 41) applies here for the same reason: move the code rules to
+`worker-code.md`, where they already are, and keep in `worker.md` only what is true in all three
+phases — don't commit, don't touch ROADMAP status, don't start a different task, don't sound
+confident about what you are unsure of.
+
+Two smaller notes in the same list:
+- "Put it in `## Risks & Open Questions`" points at a `plan.md` section that does not exist in the
+  SPEC phase.
+- The money bullet is the last project-shaped assumption left in the generic text after the item-40
+  strip. It is guarded ("if the project mandates `BigDecimal`"), so it is defensible — but it belongs
+  next to the other domain rules in `worker-code.md`, not in the cross-phase list.
+
+### 56. A `progress.md` heartbeat line — considered and rejected *(informational)*
+Recording so it is not re-proposed. Step 4 deliberately forbids writing an entry when a unit of work
+*starts*, which is what produced the TASK-044 false death: the Orchestrator read ~1h of silence as a
+dead Worker and dispatched a second one onto the same tree.
+
+A "still working" heartbeat would fix the silence but break the file's contract — `progress.md` is
+defined as the successor's record of *what actually landed*, and a successor that cannot distinguish
+a heartbeat from a completion will build on unfinished work. That is a worse failure than a false
+death, and it is the failure the "WRITTEN, UNVERIFIED" convention exists to prevent.
+
+The liveness problem is already solved on the other side, by item 18's `SendMessage(agent_id)` ladder:
+the Orchestrator asks the agent instead of guessing from the file. Keep Step 4's milestone-only rule
+exactly as it is.
