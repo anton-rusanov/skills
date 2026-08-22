@@ -921,7 +921,7 @@ that are unexecutable today).
 Whatever item 21 settles, it has to name a single owner for the *creation* of `status.md` and say what
 the other two do when they find it already present. Today all three write it and the last writer wins.
 
-### 47. A self-selecting Worker takes a task without locking it *(recommended — rewritten)*
+### 47. A self-selecting Worker takes a task without locking it *(agreed — delete the branch)*
 `worker.md` Step 1: "Asked for 'the next task' → the first `[PENDING]` task." `worker.md`'s own
 "What NOT to do": "**Don't modify ROADMAP.md status.** The Orchestrator owns that."
 
@@ -1014,3 +1014,8 @@ refuses. Both move together, or neither.
 measurement cannot see them. If a Worker is invoked directly anywhere else, deleting the branch breaks
 it — though the lock hole is real there too, so the alternative is not "leave it alone" but "let it
 set and commit the lock itself".
+
+**Decided (author, 2026-08-21):** the other projects do not invoke Workers directly either. **Delete
+the branch.** `worker.md` Step 1 loses the "asked for 'the next task'" path; a Worker is always
+dispatched with a task ID and stops loudly without one. `SKILL.md`'s mode table — the WORKER trigger
+rows and the "otherwise WORKER" tie-break — is edited in the same change.
