@@ -893,7 +893,7 @@ cannot be undone.
 
 ## `worker.md` Steps 1-3
 
-### 44. Item 7's archaeology has three sites, not one *(recommended)*
+### 44. Item 7's archaeology has three sites, not one *(agreed)*
 Item 7 agreed to delete the "earlier versions of this skill appended `dispatched:` / `dispatched_at:`"
 passage from `SKILL.md`. The same archaeology is restated in **`worker.md` Step 2** ("If the existing
 file carries legacy `dispatched:` / `dispatched_at:` keys, let them go…") and **`reviewer.md` Step
@@ -905,13 +905,13 @@ key as their only channel for the action string** (session-2 measurement block, 
 "strip it" instruction and those keys survive into the review; remove the archaeology *and* fix
 item 21's dispatch channel and the situation cannot arise. Sequence the two edits together.
 
-### 45. Item 6's `round:` warning has three sites too *(recommended)*
+### 45. Item 6's `round:` warning has three sites too *(agreed)*
 The inline warning `round: <current PHASE round — resets to 1 each phase, NOT the review-round-N
 filename counter>` sits in `worker.md` Step 2's template as well as in `SKILL.md`. Item 6 deletes the
 cause; all three copies of the warning go with it (see also item 24 for the two round-counting rules
 that are unexecutable today).
 
-### 46. Three different agents create `status.md` and nothing arbitrates *(open)*
+### 46. Three different agents create `status.md` and nothing arbitrates *(agreed — fix; single owner to be named with item 21)*
 - `worker.md` Step 2: "Create `.agents/sdlc/tasks/<TASK-ID>/` if it doesn't exist and write
   `status.md`."
 - `SKILL.md` step 1: the Orchestrator creates the task directory.
@@ -943,7 +943,7 @@ self-selecting Worker sets and commits the lock exactly as the Orchestrator woul
 session and is not authoritative. The lock conflict above is internal to the skill and stands on its
 own.)*
 
-### 48. The Worker is told to read `orchestrator-notes.md` for only one of its four purposes *(recommended)*
+### 48. The Worker is told to read `orchestrator-notes.md` for only one of its four purposes *(agreed)*
 Step 0.2 sends the Worker to `orchestrator-notes.md` for exactly one thing: an `## Interruptions`
 entry authorizing a dirty-tree start. Item 14 establishes that the file also holds **in-session user
 decisions** (skip Phase 0, take fix (a) not (b), model sizing), **round-budget and round-counter
@@ -960,7 +960,7 @@ Step 1 requires every declared dependency to be `[DONE]` or the Worker blocks wi
 only note is that the check happens once, in the first Worker of the task; a dependency that regresses
 to `[BLOCKED]` mid-pipeline is not noticed. Low value to fix; recording so it is not rediscovered.
 
-### 50. Item 2 has a fourth site — and it is a *spec* file *(recommended; extends agreed item 2)*
+### 50. Item 2 has a fourth site — and it is a *spec* file *(agreed; extends agreed item 2)*
 Item 2 named three documents disagreeing about who flips `ROADMAP.md` to `[DONE]`. There is a fourth,
 and it is the one that reads as normative: `references/roadmap-spec.md:48-50`, under the heading
 **"Who updates what"** —
@@ -976,3 +976,41 @@ contradiction intact and moves it somewhere more authoritative.
 While in that paragraph: it also assigns `[IN_PROGRESS]` → `[BLOCKED]` to the Orchestrator, which
 matches `SKILL.md`'s blocked path — except `SKILL.md` says to revert the heading to **`[PENDING]`**,
 not to `[BLOCKED]`. A second, quieter disagreement in the same sentence.
+
+### 47 (continued) — measured: the direct-Worker path has never been used
+
+The author asked whether a Worker is ever legitimately invoked outside the Orchestrator. Measured
+across the whole corpus:
+
+- **31 top-level (non-sidechain) sessions. Exactly one ever opened `references/worker.md`** — and it
+  was an **Orchestrator**, launched as `/sdlc ROADMAP_ALGO.md tasks B21 …, B23 …, and B22 in order`,
+  which then made 19 `Agent` calls and spawned 38 subagents. It read `worker.md` for reference, never
+  acted as a Worker.
+- **Zero top-level sessions wrote `plan.md` or `status.md` without dispatching an agent.** Every one
+  of the 73 Worker sessions in the corpus is an Orchestrator-dispatched sidechain.
+- **Self-selection was never used either.** Every real launch named explicit targets — `TASK-037`,
+  `TASK-038`, `task 038`, `B21/B23/B22`, `#6 and #14 of LIVE_PATH_AUDIT.md`, `#19 and #35`. Not one
+  launch said "the next roadmap task" or "all pending tasks". (Those phrases hit ~135 times in the
+  corpus only because `SKILL.md`'s own trigger table contains them and every session reads it — a
+  reminder that grepping transcripts for a phrase the skill itself defines measures reading, not
+  behavior.)
+
+So both halves of the path are dead in this project: nothing has ever invoked a Worker directly, and
+nothing has ever asked one to choose its own task.
+
+**Recommendation: delete the path rather than patch it, and fail loudly if it is ever taken.**
+`worker.md` Step 1 loses the "asked for 'the next task'" branch; the Worker is always dispatched by an
+Orchestrator with a task ID, and a Worker that finds itself without one stops and says so instead of
+silently working an unlocked task. That is the same fail-loud disposition the project applies
+elsewhere, and it costs nothing that has ever been used.
+
+**Consequence to reconcile:** `SKILL.md`'s mode table advertises the deleted capability — "Two roles,
+auto-detected from the prompt", with WORKER triggers "implement task X", "work on next roadmap task",
+and a tie-break rule ("if the prompt is ambiguous: … otherwise WORKER"). Deleting self-selection in
+`worker.md` without touching that table leaves the skill advertising an entry point its protocol file
+refuses. Both move together, or neither.
+
+**Caveat the author must rule on:** this corpus is one project. The skill runs on others, and the
+measurement cannot see them. If a Worker is invoked directly anywhere else, deleting the branch breaks
+it — though the lock hole is real there too, so the alternative is not "leave it alone" but "let it
+set and commit the lock itself".
