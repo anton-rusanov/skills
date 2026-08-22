@@ -1266,3 +1266,106 @@ does not solve *legibility*, which is why that item landed on a run digest inste
 separate question and the worktree already wins it for autonomous runs, with a second independent
 reason recorded in `AUTONOMOUS_RUNS.md`: the `/IdeaProjects` mount is slow enough to produce a
 false test failure the fast filesystem does not.
+
+### Author corrections (2026-08-22)
+
+- **59 is conditional, never a mandate.** "Not every task deserves a spec. Some are really simple."
+  The `**Spec**:` field is required on the ROADMAP row *only when a spec governs the task*; spec-less
+  tasks stay spec-less and the Reviewer reads the ROADMAP row alone. Nothing in this change pushes
+  toward writing more specs.
+- **Factual correction on the worktree — I overstated it.** I wrote that "your unattended runs already
+  use one". They do not. `/home/vscode/worktrees/ricci-auto` was created *in this session*, and its
+  only two pipeline runs (TASK-030, TASK-036) were tests of the skill, not user-driven autonomous
+  runs. No real unattended run has used it yet.
+
+  Worth naming because it is the **second** time in this session I treated `docs/AUTONOMOUS_RUNS.md`
+  as a record of established practice when it is a work in progress written during this same session
+  — the first was item 47's original eligibility-rules argument, also withdrawn. That document
+  describes an intended setup, not history, and must not be cited as evidence of what has happened.
+- **Decision: autonomous runs use the worktree.**
+
+## `reviewer.md` Steps 3-5
+
+### 61. The `BLOCKED` reason vocabulary is split across three files with no canonical list *(recommended)*
+Eight reasons exist and no single place lists them:
+
+| Reason | Defined in |
+|---|---|
+| `MAX_ROUNDS_EXCEEDED`, `MISSING_REQUIREMENTS`, `NEEDS_HUMAN_DECISION`, `SPEC_TOO_AMBIGUOUS` | `reviewer.md:203` |
+| `DIRTY_WORKING_TREE`, `DEPENDENCY_NOT_MET` | `worker.md` prose — with **no `reason:` field** (item 52) |
+| `WORKER_DID_NOT_SIGNAL`, `REVIEWER_DID_NOT_SIGNAL` | `SKILL.md` round loop |
+
+Item 52 gives the Worker a `BLOCKED` template and item 53 makes the Orchestrator propagate the
+Worker's reason instead of overwriting it — both need one canonical vocabulary to write against.
+Put the full list in `SKILL.md` beside the status table and have the two protocol files reference it.
+
+### 62. The review template has no `## Verification` section, so 51 reviews invented ten *(recommended)*
+`review-code.md` demands the Reviewer independently run every affected suite and `/verify`, and
+`SKILL.md` refuses to commit without that evidence — but `reviewer.md` Step 4's template has nowhere
+to put it. It appears in `handoff.md` only, which is written *only* on APPROVED or BLOCKED.
+
+Measured across 62 CODE review files: **51 record test/`verify` evidence anyway**, under ten different
+headings —
+
+| Heading | Count |
+|---|---|
+| `## Verification performed` | 11 |
+| `## Verification performed (independent, not the Worker's runs)` | 3 |
+| `## Verification Notes` / `## Verification I ran` / `## Verification` / `## Test Run` / `## Independent verification performed` | 2 each |
+| `` ## `/verify` — what was lifted and what was re-run `` | 1 |
+| `` ## `/verify` — re-run by the Reviewer, not credited `` | 1 |
+
+Same failure as item 14 defect 3 (six vocabularies for `orchestrator-notes.md`) and item 23 (two rival
+filename conventions): behaviour the protocol requires but never gives a shape, so every agent invents
+one. Two consequences beyond untidiness:
+
+1. On `NEEDS_FIXES` rounds the evidence lands nowhere durable — the next Reviewer re-runs everything
+   with no record of what the last one already established.
+2. The Orchestrator's commit gate looks for a green `/verify` in `handoff.md`. Item 34's carry-forward
+   carve-out needs to name *which round* produced the green; that is only checkable if each round's
+   evidence has a fixed home.
+
+Add `## Verification` to the Step 4 review template, in every phase (in SPEC and PLAN it records that
+no runtime check applied, which is also information).
+
+### 63. Step 6 is an empty section *(recommended)*
+"## Step 6: Final status update — Updating `status.md` is your **LAST** action." Step 5 already writes
+`status.md` in all three verdict branches, and the same rule is `SKILL.md` Critical Rule 2. Fold the
+sentence into Step 5 and delete the heading.
+
+### 64. `handoff.md` on `BLOCKED` — two files disagree about where block details live *(recommended)*
+`reviewer.md` Step 5 BLOCKED: *"Write `handoff.md` with the latest plan, all unresolved findings and
+disagreements, and a clear statement of what the human must decide."* `SKILL.md`'s blocked outcome:
+*"revert the ROADMAP heading to `[PENDING]` (**block details live in `status.md`**)"* — and never
+mentions `handoff.md`.
+
+So the Reviewer writes the human-facing explanation into a file the Orchestrator is not told to read,
+and the Orchestrator reports from a file that holds one `reason:` token. Since blocking is the path
+that *ends* with a human, this is the worst place for the handoff to go unread. Point the Orchestrator
+at `handoff.md` on the blocked path.
+
+### 65. Item 4 (the Reviewer-error gate) — recommendation, now that the base rate is known *(open, awaiting the author)*
+Session 1 left this undecided and its ranking put **adjudicated contested findings** first and the
+**evidence floor** second. The session-2 measurement inverts that, and I am changing my predecessor's
+recommendation on the data:
+
+- The feared failure — the Reviewer as judge in its own cause, overriding sound rebuttals — is
+  **not what the corpus shows**. Across 46 rulings on Worker rebuttals the Reviewer sided with the
+  Worker **43 times (93%)** and re-asserted **3**. It concedes readily.
+- Of the 43 concessions, **33 were Observations** — no-fix items, not standoffs.
+- Of the 3 re-assertions, one is not a contest at all: TASK-037 round 4 catching a claim that was
+  correctly removed in PLAN round 1 and *reappeared* in `docs/CONFIGURATION.md` during CODE. That is
+  the Reviewer working, not failing.
+
+So an adjudicator would have fired **twice in 49 tasks** on genuine standoffs. The machinery — a third
+agent, a new artifact, a new branch in the round loop — is real; the demonstrated need is not.
+
+**Recommendation: take the evidence floor, skip the adjudicator, revisit if the ❌ rate rises.**
+Concretely: every Critical cites a resolvable `file:line` or pasted command output, and `worker.md`
+states plainly that an uncited Critical is a legitimate rebuttal. That is a few lines in two files,
+it kills fabricated citations outright, and it costs nothing per round. The adjudicator can be built
+later from the same `❌` signal if the rate moves — the marker is already in the template and already
+machine-countable, so the trigger is measurable without building anything now.
+
+**Explicitly still rejected:** a second full reviewer (doubles cost, same failure mode), and
+Orchestrator spot-checks (its value is never reading a diff).
