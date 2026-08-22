@@ -1179,7 +1179,7 @@ mode I raised, and it costs one word per line rather than more prose.
 
 ## `reviewer.md` Steps 0-1
 
-### 58. The Reviewer self-selects its task, the same way the Worker did *(recommended — parallel to agreed item 47)*
+### 58. The Reviewer self-selects its task, the same way the Worker did *(agreed — same fix as item 47)*
 Step 0.3: *"**Find the task** — a directory under `.agents/sdlc/tasks/` whose `status.md` says
 `AWAITING_REVIEW`. If several match, use the one named in the prompt."*
 
@@ -1191,7 +1191,7 @@ simultaneously is normal, not exceptional.
 Item 47 deleted the Worker's self-selection for exactly this reason. The same edit belongs here:
 review the task named in the prompt; if it is absent, stop and say so.
 
-### 59. PLAN and CODE Reviewers are never told to read the governing spec *(recommended)*
+### 59. PLAN and CODE Reviewers are never told to read the governing spec *(agreed — scoped to spec-governed tasks)*
 `reviewer.md` Step 0.5 names `ROADMAP.md` as "your source of truth for what the task should
 accomplish". Step 1.4 routes the governing spec to the **SPEC** phase only. Nothing tells a PLAN or
 CODE Reviewer to read it — yet on a spec-governed task the spec, not the nine-line ROADMAP row, is
@@ -1201,7 +1201,7 @@ Measured: **41 of 133** PLAN/CODE review files cite a `spec/spec-*` path anyway 
 around the gap on their own, in a third of all reviews. Add the spec to Step 0.5 for every phase, and
 note that it interacts with item 22 (there is no channel telling the Reviewer *which* spec file it is).
 
-### 60. In a single-repo project the unaccounted-changes sweep reports the siblings *(open)*
+### 60. ~~In a single-repo project the unaccounted-changes sweep reports the siblings~~ *(WITHDRAWN — my hypothesis, refuted)*
 Step 1.4 CODE: run `git status --porcelain` in each Impact Map repo and "list anything changed that
 the map does not declare … **Do not review it and do not assume it is the Worker's.**"
 
@@ -1214,3 +1214,55 @@ The instruction handles this correctly in principle (report, do not review, do n
 should stay. The open question is whether the report is worth its noise in a shared checkout, or
 whether it should be scoped to the Impact Map's *paths* plus a bounded neighbourhood rather than the
 whole tree. Note the dedicated worktree removes the class entirely.
+
+**Author's scoping on 59 (accepted, and their explanation checks out).** The fix applies only when a
+spec governs the task; not all tasks have one. Their hypothesis for the 41 citations — that Reviewers
+found the spec because the ROADMAP row links it — is largely confirmed:
+
+- `ROADMAP.md`: **7 of 27** rows carry an explicit `**Spec**:` field (TASK-027, 028, 032, 037, 038 and
+  two others), which `reviewer.md` Step 0.5 already routes the Reviewer to.
+- `ROADMAP_ALGO.md`: 16 spec references, but mostly inside post-hoc `**Status:** DONE — SDLC task A2
+  (spec …)` lines, which may not have existed at review time. Weaker evidence.
+
+**This narrows item 22** ("no channel for the governing spec"), which I overstated. The ROADMAP link
+*is* a channel, and `SKILL.md`'s Phase-0 trigger names it explicitly ("the prompt references a
+`spec/spec-*.md` **or the ROADMAP task links one**"). The gap only bites when the spec arrives via the
+prompt and is **not** linked from the row — TASK-044 is exactly that case: its spec is cited nowhere
+in `ROADMAP.md`. So item 22 stands, but as a narrow hole rather than a missing channel, and the
+cheapest fix may simply be to require the ROADMAP row to carry the `**Spec**:` field whenever one
+governs the task.
+
+### Withdrawal of item 60 — the sweep costs nothing, and it never sees siblings
+
+The author asked what is actually wrong with labelling a sibling session's files unaccounted. Checked:
+**nothing, and it has never happened.** Every "unaccounted changes" report in the corpus names the
+task's *own* inputs, not another session's work:
+
+- TASK-032 CODE round 1: *"`.agents/skills` (submodule, dirty content — no pointer diff) and
+  `spec/spec-20260813-task032-…md` (the SPEC-phase edits, uncommitted since round 2). Both were
+  declared licensed in `progress.md`'s pre-flight entries and neither is CODE scope creep."*
+- TASK-038 round 3: *"two files the plan's Impact Map does not declare: ` M ROADMAP.md` and
+  ` M spec/spec-20260814-…md`. I read both diffs. … **Not scope creep, and not this Worker's CODE-phase
+  work.** Flagging it only so the Orchestrator confirms that reading before committing."*
+
+In both, the Reviewer classified correctly, did not review the files, did not attribute them, and did
+not block — the `NEEDS_FIXES` verdicts in those rounds were driven by unrelated findings, and both
+tasks were `APPROVED` the following round with the same paths still listed. TASK-038's Reviewer even
+turned it into value, prompting the Orchestrator to check the diff before staging.
+
+So the sweep is doing its job at zero cost. What it actually surfaces, every time, is the same gap
+**item 42** identified — the task's own inputs (new/flipped ROADMAP row, uncommitted governing spec)
+are not on the legitimacy list. Fix item 42 and these reports mostly stop. Item 60 is withdrawn.
+
+**Worktree — precise restatement.** My "a dedicated worktree removes the class entirely" was about the
+**autonomous** path, where it is already true and already in use: `docs/AUTONOMOUS_RUNS.md` runs
+unattended work in `/home/vscode/worktrees/ricci-auto` on branch `auto/pending`, against its own
+`ricci_auto` database. It is not available for the **interactive** path, where several sessions share
+`/IdeaProjects/Ricci` by design.
+
+What session 1 concluded (item 13) was narrower than "a worktree is wrong for your case": a worktree
+isolates the **tree** and does nothing for the **history**, which is what you actually read — so it
+does not solve *legibility*, which is why that item landed on a run digest instead. Isolation is a
+separate question and the worktree already wins it for autonomous runs, with a second independent
+reason recorded in `AUTONOMOUS_RUNS.md`: the `/IdeaProjects` mount is slow enough to produce a
+false test failure the fast filesystem does not.
