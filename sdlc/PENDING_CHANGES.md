@@ -1043,7 +1043,7 @@ three misses are the first two days after the commit landed. Same shape as item 
 `orchestrator-notes.md`, and it settles the equivalent question for `progress.md`: it is adopted, not
 ignored. The 41 older directories predate both and prove nothing.
 
-### 52. The Worker is told to emit a block reason with no field and no template *(recommended)*
+### 52. The Worker is told to emit a block reason with no field and no template *(agreed)*
 `worker.md` tells the Worker to block in four places — `DIRTY_WORKING_TREE` (Step 0.2, three times)
 and `DEPENDENCY_NOT_MET` (Step 1). Step 5 then gives it exactly one `status.md` template, the
 `AWAITING_REVIEW` success shape, with five keys and **no `reason:` line**. Grepping the whole skill,
@@ -1052,7 +1052,7 @@ and `DEPENDENCY_NOT_MET` (Step 1). Step 5 then gives it exactly one `status.md` 
 So a blocking Worker has to invent both the field and the file shape. Give `worker.md` Step 5 a
 `BLOCKED` template with `reason: <DIRTY_WORKING_TREE | DEPENDENCY_NOT_MET>`, matching the Reviewer's.
 
-### 53. The Orchestrator relabels a correct Worker block as a protocol failure *(recommended)*
+### 53. The Orchestrator relabels a correct Worker block as a protocol failure *(agreed)*
 `SKILL.md` round loop: "Worker returned anything but `AWAITING_REVIEW` → **blocked**, reason
 `WORKER_DID_NOT_SIGNAL`."
 
@@ -1067,19 +1067,23 @@ Fix: split the branch. `BLOCKED` from a Worker propagates the Worker's own `reas
 change at all. This pairs with item 52: the Orchestrator can only propagate a reason the Worker had a
 field to write.
 
-### 54. The `date` command needs the `Z` baked in *(refines agreed item 38)*
+### 54. The `date` command needs the `Z` and seconds baked in *(agreed; refines item 38)*
 Item 38 agreed to port `worker.md` Step 4's literal command to the other three sites and to require an
 explicit `Z`. Concretely the command string changes:
 
 ```
-date -u +%Y-%m-%dT%H:%M     ->     date -u +%Y-%m-%dT%H:%MZ
+date -u +%Y-%m-%dT%H:%M     ->     date -u +%Y-%m-%dT%H:%M:%SZ
 ```
+
+**Author's call: include seconds.** Minute resolution cannot order two entries inside the same
+minute, and the corpus has several — TASK-030 wrote three CODE entries between 08:51 and 08:53. The
+ordering the file exists to convey is lost exactly when work moves fastest.
 
 `Z` is not a `strftime` specifier, so it emits literally. One edit, and it makes every generated
 timestamp self-describing at the moment of creation rather than relying on an agent to append the
 suffix by hand. Update the existing Step 4 occurrence too, not just the three new sites.
 
-### 55. "What NOT to do" restates phase-file rules and is read where they cannot apply *(recommended)*
+### 55. "What NOT to do" restates phase-file rules and is read where they cannot apply *(agreed)*
 Five of the eight bullets are code-quality rules stated again, usually more precisely, in the phase
 files:
 
@@ -1105,7 +1109,7 @@ Two smaller notes in the same list:
   strip. It is guarded ("if the project mandates `BigDecimal`"), so it is defensible — but it belongs
   next to the other domain rules in `worker-code.md`, not in the cross-phase list.
 
-### 56. A `progress.md` heartbeat line — considered and rejected *(informational)*
+### 56. A `progress.md` heartbeat line — parked, author unconvinced *(open — NOT consensus)*
 Recording so it is not re-proposed. Step 4 deliberately forbids writing an entry when a unit of work
 *starts*, which is what produced the TASK-044 false death: the Orchestrator read ~1h of silence as a
 dead Worker and dispatched a second one onto the same tree.
@@ -1118,3 +1122,95 @@ death, and it is the failure the "WRITTEN, UNVERIFIED" convention exists to prev
 The liveness problem is already solved on the other side, by item 18's `SendMessage(agent_id)` ladder:
 the Orchestrator asks the agent instead of guessing from the file. Keep Step 4's milestone-only rule
 exactly as it is.
+
+**Author's position (2026-08-21): unconvinced.** "I don't know why not write when the work starts.
+Happy to leave it alone for now." Parked, not settled — and the corpus supports the author's
+skepticism more than my rejection did. See item 57: Workers already write start-shaped entries, the
+protocol notwithstanding, and one of them was written by the predecessor in a real death case.
+
+### 57. `progress.md` needs entry *types*, not more detail *(open — answers the author's question)*
+The author asked whether `progress.md` should be more detailed. The corpus says detail is the wrong
+axis.
+
+**Length does not predict usefulness.** TASK-032 (133 lines) and TASK-037 (131) are the longest; the
+two files that actually drove a recovery are TASK-030 (**17 lines**) and TASK-044 (**20**). The
+shortest files did the real work.
+
+**What successors actually consumed, verbatim from their own entries:**
+
+- TASK-030, PLAN recovery — *"predecessor entries FOUND under my own phase (PLAN, two entries) and
+  REUSED — I inherit their pre-flight verdict and their file-level analysis (incl. the multi-ticker
+  `tickers` finding) as the starting point rather than re-deriving it."* What was consumed was
+  **orientation** — which files were read and what was concluded — not a list of completions.
+- TASK-030, CODE recovery — *"`util/BacktestCsv.kt` = KDoc + two `TODO(\"TASK-030\")` bodies (a pure
+  TDD red stub, no logic to trust) … Verdict: KEEP the test file …, IMPLEMENT the two stub bodies."*
+  Consumed: **per-file trust status**.
+- TASK-044, CODE recovery — *"git status shows the 11 files the Interruptions entry lists PLUS
+  SignalExecutor.kt (entry said NOT touched — **stale**)."* The successor caught the Orchestrator's
+  `## Interruptions` entry being wrong, by checking `git status` against it. `progress.md` was the
+  cross-check, not the source.
+
+**Three de facto entry types already exist, and only one is sanctioned:**
+
+1. **Completion** — "step 3/4 done: X; evidence Y". The only type Step 4 describes.
+2. **Orientation / intent** — "pre-flight done (tree clean except the ROADMAP flip)", and TASK-044's
+   predecessor: *"Starting implementation: schema/domain first, then broker seams, then
+   BracketOrderManager resolution + submitEngineExit, then SignalExecutor, then tests, then docs."*
+   That is a **start entry, written in defiance of the rule, by the Worker that then died** — exactly
+   the case Step 4's prohibition is aimed at, and it told the successor the intended order.
+3. **Anomaly** — TASK-044: *"FOREIGN EDIT observed at 03:21 … Per the concurrent-sessions memory:
+   adopting, will re-verify by running the suite; NOT reverting"*, and *"a concurrent actor is landing
+   TASK-044 work in this same checkout in parallel"*. The dual-writer incident recorded live. The
+   protocol never asks for this and it is among the most valuable content in either file.
+
+**Proposal.** Keep entries short; add a leading type marker so a successor can tell them apart, which
+is the property that made the blanket start-entry ban look necessary in the first place:
+
+```
+- <ts> — CODE DONE  step 3/4: <what completed> — <evidence>
+- <ts> — CODE START step 4/4: <what is being attempted, and in what order>
+- <ts> — CODE NOTE  <anomaly: foreign edit, sibling session, blocked on X>
+```
+
+`DONE` keeps the current contract exactly — only finished, verified work. `START` is safe *because it
+is labelled*: a successor can never mistake it for a landing, which was the whole objection. `NOTE`
+gives the concurrency observations a home. This gets the author's start-entry without the failure
+mode I raised, and it costs one word per line rather than more prose.
+
+## `reviewer.md` Steps 0-1
+
+### 58. The Reviewer self-selects its task, the same way the Worker did *(recommended — parallel to agreed item 47)*
+Step 0.3: *"**Find the task** — a directory under `.agents/sdlc/tasks/` whose `status.md` says
+`AWAITING_REVIEW`. If several match, use the one named in the prompt."*
+
+Scanning is primary; the prompt is the tie-break. That is backwards — the Reviewer prompt template
+**always** names the task ("Review roadmap task `<TASK-ID>`"), so scanning is never needed and can
+only go wrong. Concurrent sessions share the checkout, and two tasks sitting at `AWAITING_REVIEW`
+simultaneously is normal, not exceptional.
+
+Item 47 deleted the Worker's self-selection for exactly this reason. The same edit belongs here:
+review the task named in the prompt; if it is absent, stop and say so.
+
+### 59. PLAN and CODE Reviewers are never told to read the governing spec *(recommended)*
+`reviewer.md` Step 0.5 names `ROADMAP.md` as "your source of truth for what the task should
+accomplish". Step 1.4 routes the governing spec to the **SPEC** phase only. Nothing tells a PLAN or
+CODE Reviewer to read it — yet on a spec-governed task the spec, not the nine-line ROADMAP row, is
+what the work was built against, and the Orchestrator commits the two together.
+
+Measured: **41 of 133** PLAN/CODE review files cite a `spec/spec-*` path anyway — Reviewers routing
+around the gap on their own, in a third of all reviews. Add the spec to Step 0.5 for every phase, and
+note that it interacts with item 22 (there is no channel telling the Reviewer *which* spec file it is).
+
+### 60. In a single-repo project the unaccounted-changes sweep reports the siblings *(open)*
+Step 1.4 CODE: run `git status --porcelain` in each Impact Map repo and "list anything changed that
+the map does not declare … **Do not review it and do not assume it is the Worker's.**"
+
+Per item 40 the repo scoping stays, but in a single-repo project it degenerates to the whole tree —
+so the sweep surfaces every concurrent session's uncommitted file as an "unaccounted change". Measured:
+17 review files across 6 tasks carry such reports, and TASK-044's own `progress.md` records a sibling
+session writing that same task's files in parallel.
+
+The instruction handles this correctly in principle (report, do not review, do not attribute), and it
+should stay. The open question is whether the report is worth its noise in a shared checkout, or
+whether it should be scoped to the Impact Map's *paths* plus a bounded neighbourhood rather than the
+whole tree. Note the dedicated worktree removes the class entirely.
