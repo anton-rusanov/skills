@@ -1369,3 +1369,25 @@ machine-countable, so the trigger is measurable without building anything now.
 
 **Explicitly still rejected:** a second full reviewer (doubles cost, same failure mode), and
 Orchestrator spot-checks (its value is never reading a diff).
+
+### 66. The three-architects PLAN fan-out has never fired *(open)*
+`worker-plan.md` tells a PLAN Worker that when a task "genuinely admits multiple viable
+architectures", it should "spawn three `Plan`-type agents in parallel (one message, three `Agent`
+calls)" with Minimal / Clean / Pragmatic mandates.
+
+Measured across the whole corpus: **zero `Plan`-type agent spawns.** Every `subagent_type` in
+127+2 recorded spawns is `general-purpose` (127) or `claude-code-guide` (2). Of the 18 subagent
+sessions that had the three mandates in context — because they read `worker-plan.md` — **16 spawned
+no agent at all and 2 spawned exactly one**, never three.
+
+Two readings, and unlike item 41 the corpus does separate them a little: the gate is explicitly
+conditional ("Most roadmap tasks extend an existing pattern… If you can't articulate a second
+defensible approach in one sentence, there's no fork — don't manufacture one"), and at least one
+Worker recorded consciously declining it — TASK-030's `progress.md`: *"No fan-out: fix (a) is bound by
+the Orchestrator and admits no second architecture."* So the instruction is being read and applied,
+and zero firings may be correct restraint rather than a dead mechanism.
+
+What is *not* established is that the branch works: it has never executed, so nothing has tested the
+three-way spawn, the comparison step, or how the result reaches `## Approach`. Untested code that
+fires rarely is where bugs sit. Cheapest resolution is to leave the instruction alone and note the
+status honestly rather than either trusting or deleting it.
