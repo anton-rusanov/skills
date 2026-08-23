@@ -1401,3 +1401,108 @@ What is *not* established is that the branch works: it has never executed, so no
 three-way spawn, the comparison step, or how the result reaches `## Approach`. Untested code that
 fires rarely is where bugs sit. Cheapest resolution is to leave the instruction alone and note the
 status honestly rather than either trusting or deleting it.
+
+## Spec scope, and spot-checks 1-3
+
+### 67. Specs are pinning implementation, and it is measurable *(open — the author's question)*
+`worker-spec.md` already forbids this: *"Keep the spec on **what** and **why**. The **how** belongs in
+`plan.md`, which comes later — don't let the spec drift into implementation detail."* The instruction
+exists and is being violated.
+
+| Spec | Lines | `*.kt` refs | `file:line` refs |
+|---|---|---|---|
+| TASK-032 plan-geometry-cycle-abort | 381 | **26** | 29 |
+| TASK-038 open-anchored-scheduler | 490 | 3 | **43** |
+| TASK-044 plain-row-exit-recovery | 253 | 0 | 0 |
+
+Not uniform — TASK-044 is clean — so this is drift, not an inherent property. And it lands in the
+sections where it does the most damage:
+
+- TASK-032: 8 `.kt` refs in `## Context`, **7 in `## Acceptance criteria`**.
+- TASK-038: 9 line refs in `## Behavior`, **7 in `## Acceptance criteria`**.
+
+Sample criterion: *"(b) The `SELL_SHORT`-reaches-limit-router assertion (`SignalExecutor.kt:219-226`),
+deliberately…"* — that is not a product decision, it is a patch site.
+
+**Probable cause is the Reviewer, not the Worker.** `review-spec.md`'s *Verifiable acceptance
+criteria* dimension demands every criterion be observable and testable, and the cheapest way to make a
+criterion *look* testable is to name the file and line. The dimension pushes exactly the drift
+`worker-spec.md` prohibits.
+
+**Consequence already visible:** this is why item 66's fan-out never fires. All three recorded
+declines say the same thing — TASK-032 *"the spec pins the site"*, TASK-030 *"admits no second
+architecture"*, TASK-038 *"the spec fixes the seam, constants, wiring source and guard shape"*. Phase 0
+is doing PLAN's job, so PLAN has no architecture left to choose. The two items are one problem.
+
+**Options:**
+
+- **A (recommended) — a mechanical test, in the same shape as item 10's.** A spec may cite existing
+  code in `## Context` as *evidence of the problem*; `## Behavior` and `## Acceptance criteria` must
+  state observable outcomes. The test: **"would this criterion still be satisfiable if the implementer
+  chose a different file?"** If no, it is over-pinned. Put the test in `worker-spec.md` and, crucially,
+  in `review-spec.md`'s Verifiable-criteria dimension, since that is what drives the drift.
+- **B — accept it and shrink PLAN.** If specs pin design, PLAN becomes validation rather than design.
+  *Refuted by the data:* PLAN rounds are substantive — TASK-030, a nine-line ticket, consumed three
+  PLAN rounds each closing a genuine Critical. PLAN is not a rubber stamp today.
+- **C — do nothing.** Costs: the fan-out branch stays untested forever, and product decisions stay
+  entangled with patch sites in a document the user is asked to approve.
+
+Note A has a knock-on: if specs stop pinning sites, the fan-out precondition stops being rare and an
+**untested branch starts executing** (item 66). Decide them together.
+
+### 68. Spot-check 1 — reconciling `## Assumptions` with `## Assumed Decisions` *(proposal)*
+Two lists of "decisions made without asking the user" would exist:
+
+| | Written by | Where | Durable? | When |
+|---|---|---|---|---|
+| `## Assumed Decisions` (item 10, agreed) | Reviewer | `spec-review-round-N.md` | no — gitignored | before the Phase 0 gate |
+| `## Assumptions` (exists today) | Worker | the spec file under `spec/` | **yes — committed** | after the gate |
+
+**Proposal (option A, recommended): they are two stages of one fact, and the text should say so.**
+The Reviewer's table is the **proposed** set, rendered at the gate so the user can object in one
+glance. The Worker's section is the **ratified** set, written into the durable spec after the gate —
+the proposed assumptions minus any the user overturned, plus anything new the Worker had to assume
+while closing findings. That gives the Worker a rule it currently lacks (today `## Assumptions` is
+whatever it happened to guess) and gives the user one durable record instead of two partial ones.
+
+- **B — Reviewer writes straight into the spec's `## Assumptions`.** Rejected: it breaks the
+  Worker-writes / Reviewer-reviews separation and makes the Reviewer judge of its own text next round.
+- **C — drop the Worker's `## Assumptions`, keep only the review file.** Rejected: review files are
+  gitignored and disposable, so the durable record vanishes — the same dead-letter failure as item 26.
+
+### 69. Spot-check 2 — the unreviewed-file hole, and a reconsideration of item 12 *(open)*
+The hole: `reviewer.md` Step 1.4 reviews Impact Map paths "**and only those**" and is told not to
+review unaccounted ones; item 12 moves *staging* to a Worker-maintained `changed-files.md`. Composed,
+a legitimate round-2 fix in a file the map does not name is **staged and committed without ever being
+reviewed**.
+
+**A reconsideration first, because it may shrink item 12.** `worker-plan.md:117-119` already says:
+*"A file the CODE Worker ends up touching that is not listed is either a missed dependency or scope
+creep; it gets added to the map with a reason, **in the same session, never silently**."* So the
+Impact Map is *already specified* to stay current. Item 12's premise — that the map is a plan artifact
+"guaranteed to drift" — is therefore partly wrong: the drift is a **compliance failure against an
+existing rule**, not a missing mechanism.
+
+**Options:**
+
+- **A — enforce the existing rule; no new artifact.** The Reviewer already diffs `git status` against
+  the map; make map-currency an explicit check, and the Orchestrator keeps staging from the map.
+  Cheapest, deletes nothing, adds no file. Loses the one thing `changed-files.md` offers that the map
+  does not: a per-file one-clause note of *what changed there*, which is what lets the Orchestrator
+  hunk-split a shared file without reading a diff.
+- **B — `changed-files.md` as agreed in item 12, plus review-scope union (recommended).** Keep the new
+  artifact for its note, and fix the hole by having the Reviewer review the **union** of the Impact Map
+  and `changed-files.md`. A path in `changed-files.md` but not the map is reviewed *and* reported as a
+  declared deviation — which item 12 already says is a reported deviation, not an automatic block.
+  Paths in neither stay reported-not-reviewed-not-attributed, which item 60's evidence shows works.
+- **C — block on any file outside the map.** Rejected: round 2 legitimately adds files; this blocks
+  normal operation.
+
+### 70. Spot-check 3 — `worker-plan.md`'s Impact Map paragraph states a purpose that becomes false *(agreed — fix)*
+*"three later steps read this table to stay out of each other's way: the CODE Worker checks the working
+tree only in the repos it names, the Reviewer reviews only the paths it names, and **the Orchestrator
+stages exactly those paths at commit time**."*
+
+Under item 12 the third clause is false and the second becomes the hole in item 69. Rewrite to match
+whichever of 69's options is chosen; if B, the paragraph names `changed-files.md` as the staging list
+and the review scope as the union.
