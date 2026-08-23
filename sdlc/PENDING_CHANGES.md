@@ -1382,10 +1382,20 @@ no agent at all and 2 spawned exactly one**, never three.
 
 Two readings, and unlike item 41 the corpus does separate them a little: the gate is explicitly
 conditional ("Most roadmap tasks extend an existing pattern… If you can't articulate a second
-defensible approach in one sentence, there's no fork — don't manufacture one"), and at least one
-Worker recorded consciously declining it — TASK-030's `progress.md`: *"No fan-out: fix (a) is bound by
-the Orchestrator and admits no second architecture."* So the instruction is being read and applied,
-and zero firings may be correct restraint rather than a dead mechanism.
+defensible approach in one sentence, there's no fork — don't manufacture one"), and **three** Workers
+recorded consciously declining it, each for the same structural reason — the governing spec had
+already fixed the design:
+
+- TASK-030 `progress.md`: *"No fan-out: fix (a) is bound by the Orchestrator and admits no second
+  architecture."*
+- TASK-032 `plan.md:215`: *"No fan-out was run: the spec pins the site…"*
+- TASK-038 `plan.md:183`: *"these two forks were the only real architectural choices; no three-way
+  `Plan` fan-out was run."*
+
+So the instruction is read and applied, and zero firings looks like correct restraint rather than a
+dead mechanism. Note the pattern in the reasons: a task hardened through Phase 0 arrives at PLAN with
+its architecture already decided, so the fan-out's precondition is systematically rare in exactly the
+tasks this pipeline runs.
 
 What is *not* established is that the branch works: it has never executed, so nothing has tested the
 three-way spawn, the comparison step, or how the result reaches `## Approach`. Untested code that
