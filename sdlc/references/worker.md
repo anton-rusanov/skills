@@ -64,7 +64,7 @@ answer questions mid-session, so anything you need decided goes in writing, into
    own judgement that "a previous session probably died here" is not evidence; the Orchestrator
    writes that entry precisely so you never have to guess.
 
-   With an entry, reconcile the tree against `progress.md` before you touch anything. What the
+   With an entry, reconcile the tr ee against `progress.md` before you touch anything. What the
    entry and `progress.md` account for is yours to continue. Anything else has unknown provenance:
    re-verify it from scratch, and if you cannot, set `BLOCKED` and stop. Never build on it — and
    **never delete or revert it.** An unexpected file may belong to a parallel session working in

@@ -316,7 +316,7 @@ host or on loshadka is undecided, and it is separate work from the skill edits.
 
 ## Recommended, awaiting a decision
 
-### 4. A real gate on Reviewer errors
+### 4. A real gate on Reviewer errors — **SETTLED 2026-08-22, see item 65: evidence floor only, no adjudicator**
 Today the Reviewer is judge in its own cause: the Worker rebuts, and the Reviewer's own
 "Previous Round Follow-Up" decides whether the rebuttal stands. Three candidates, ranked by the
 agent:
@@ -1286,7 +1286,7 @@ false test failure the fast filesystem does not.
 
 ## `reviewer.md` Steps 3-5
 
-### 61. The `BLOCKED` reason vocabulary is split across three files with no canonical list *(recommended)*
+### 61. The `BLOCKED` reason vocabulary is split across three files with no canonical list *(agreed)*
 Eight reasons exist and no single place lists them:
 
 | Reason | Defined in |
@@ -1299,7 +1299,7 @@ Item 52 gives the Worker a `BLOCKED` template and item 53 makes the Orchestrator
 Worker's reason instead of overwriting it — both need one canonical vocabulary to write against.
 Put the full list in `SKILL.md` beside the status table and have the two protocol files reference it.
 
-### 62. The review template has no `## Verification` section, so 51 reviews invented ten *(recommended)*
+### 62. The review template has no `## Verification` section, so 51 reviews invented ten *(agreed)*
 `review-code.md` demands the Reviewer independently run every affected suite and `/verify`, and
 `SKILL.md` refuses to commit without that evidence — but `reviewer.md` Step 4's template has nowhere
 to put it. It appears in `handoff.md` only, which is written *only* on APPROVED or BLOCKED.
@@ -1328,12 +1328,12 @@ one. Two consequences beyond untidiness:
 Add `## Verification` to the Step 4 review template, in every phase (in SPEC and PLAN it records that
 no runtime check applied, which is also information).
 
-### 63. Step 6 is an empty section *(recommended)*
+### 63. Step 6 is an empty section *(agreed — fold into Step 5 and delete)*
 "## Step 6: Final status update — Updating `status.md` is your **LAST** action." Step 5 already writes
 `status.md` in all three verdict branches, and the same rule is `SKILL.md` Critical Rule 2. Fold the
 sentence into Step 5 and delete the heading.
 
-### 64. `handoff.md` on `BLOCKED` — two files disagree about where block details live *(recommended)*
+### 64. `handoff.md` on `BLOCKED` — two files disagree about where block details live *(agreed)*
 `reviewer.md` Step 5 BLOCKED: *"Write `handoff.md` with the latest plan, all unresolved findings and
 disagreements, and a clear statement of what the human must decide."* `SKILL.md`'s blocked outcome:
 *"revert the ROADMAP heading to `[PENDING]` (**block details live in `status.md`**)"* — and never
@@ -1344,7 +1344,7 @@ and the Orchestrator reports from a file that holds one `reason:` token. Since b
 that *ends* with a human, this is the worst place for the handoff to go unread. Point the Orchestrator
 at `handoff.md` on the blocked path.
 
-### 65. Item 4 (the Reviewer-error gate) — recommendation, now that the base rate is known *(open, awaiting the author)*
+### 65. Item 4 (the Reviewer-error gate) — SETTLED: evidence floor only *(agreed)*
 Session 1 left this undecided and its ranking put **adjudicated contested findings** first and the
 **evidence floor** second. The session-2 measurement inverts that, and I am changing my predecessor's
 recommendation on the data:
