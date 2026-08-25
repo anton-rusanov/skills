@@ -1469,7 +1469,7 @@ is doing PLAN's job, so PLAN has no architecture left to choose. The two items a
 Note A has a knock-on: if specs stop pinning sites, the fan-out precondition stops being rare and an
 **untested branch starts executing** (item 66). Decide them together.
 
-### 68. Spot-check 1 — reconciling `## Assumptions` with `## Assumed Decisions` *(OPEN — awaiting the author)*
+### 68. Spot-check 1 — reconciling `## Assumptions` with `## Assumed Decisions` *(agreed — option A)*
 Two lists of "decisions made without asking the user" would exist:
 
 | | Written by | Where | Durable? | When |
@@ -1489,7 +1489,7 @@ whatever it happened to guess) and gives the user one durable record instead of 
 - **C — drop the Worker's `## Assumptions`, keep only the review file.** Rejected: review files are
   gitignored and disposable, so the durable record vanishes — the same dead-letter failure as item 26.
 
-### 69. Spot-check 2 — the unreviewed-file hole, and a reconsideration of item 12 *(OPEN — awaiting the author)*
+### 69. Spot-check 2 — the unreviewed-file hole, and a reconsideration of item 12 *(agreed — option B)*
 The hole: `reviewer.md` Step 1.4 reviews Impact Map paths "**and only those**" and is told not to
 review unaccounted ones; item 12 moves *staging* to a Worker-maintained `changed-files.md`. Composed,
 a legitimate round-2 fix in a file the map does not name is **staged and committed without ever being
@@ -1555,3 +1555,82 @@ wording depends on 69.
 explanation, and item 56 was reopened after the author declined my start-entry rejection.
 
 Everything else is agreed and ready to be turned into a Spec.
+
+### 71. Deduplication and read amplification — measured *(author's question; 71a/71b agreed, 71c open)*
+
+The author asked how to deduplicate the two artifact pairs and minimise token use, noting the cost is
+**read amplification** — every Worker, Reviewer and Orchestrator reads these artifacts every round.
+Measured per-task read cost (roughly 12 agent sessions per task: ~4 SPEC, ~5 PLAN, ~4 CODE):
+
+| Artifact | Size (n, min/median/max lines) | Who reads it | Per-task amplification |
+|---|---|---|---|
+| `plan.md` | 47, 49 / **251** / 643 | every PLAN + CODE Worker and Reviewer | **~2260 lines** |
+| governing spec | 34, 35 / 168 / 490 | SPEC agents today; **+PLAN/CODE under agreed item 59** | **~670 lines NEW** |
+| `spec-review-round-N.md` | 51, 30 / 50 / 166 | SPEC agents only | ~200 lines |
+| Impact Map | 4 / **12** / 28 rows | already inside `plan.md` | 0 additional |
+| `changed-files.md` (proposed) | ~15 rows | Orchestrator + CODE Reviewer | **~45 lines** |
+
+**The headline: both dedup targets are noise.** The Impact Map is 12 rows *already inside* `plan.md`,
+and `changed-files.md` would add ~45 lines per task. Together they are under 2% of what `plan.md`
+alone costs. Optimising them optimises the wrong artifact.
+
+#### 71a — Impact Map vs `changed-files.md` *(agreed: no delta scheme; manifest is complete)*
+
+- **Rejected — manifest carries only deltas from the map.** Saves ~10 lines. Costs a *join* at commit
+  time, turning the Orchestrator's job from "look it up" into "reconcile two lists" — and the union
+  cannot express a **deletion** (a file in the map the Worker did not touch would be over-staged).
+  Delta rows would also have to re-carry the repo column to be stageable, recovering most of the
+  saving.
+- **Agreed — the manifest is the complete staging list; the Impact Map keeps its planning role
+  (declared intent, reviewed at PLAN) and stops being read at commit time.** One writer and one
+  purpose each, no join, no deletion ambiguity.
+
+  **The genuine saving is not tokens, it is *whose* tokens.** Today the Orchestrator opens `plan.md`
+  (median 251 lines) to extract 12 staging rows. Under this it opens a ~15-line manifest instead.
+  That is a ~94% cut on the one context the skill explicitly protects — *"Never read the diff or edit
+  docs yourself — that is what keeps your context flat across many tasks in a row."* The Orchestrator
+  is the only agent that persists across every task in a run; it is the right context to spend a
+  design decision on.
+
+#### 71b — `## Assumed Decisions` vs `## Assumptions` *(agreed: one full copy, in the durable artifact)*
+
+The two lists are never live at the same time. Pre-gate the spec has no assumptions yet; post-gate the
+review table is history. So the flow is one-way and only one full copy is ever needed:
+
+- The Reviewer's `## Assumed Decisions` carries the proposal — decision, recommended answer,
+  one-clause rationale — and is rendered at the Phase 0 gate.
+- The Worker writes the **ratified** set into the spec's `## Assumptions`, and the review-file table is
+  thereafter **superseded**. Later SPEC rounds must be told this explicitly, because
+  `reviewer.md` Step 1.2 has them re-read every previous round's file; without the supersession note a
+  round-2 Reviewer re-proposes what round 1 already settled.
+
+**The constraint that decides this — and it is load-bearing.** The spec is **committed**; task
+directories are **gitignored and disposable**. A pointer from the spec to `spec-review-round-2.md`
+dangles permanently the moment the task directory is cleaned. So the durable artifact must always
+carry the **full text**, never a reference. Every pointer scheme has to run in the surviving direction
+only, and none of them may originate in the spec.
+
+Cost of keeping both full copies: one ~10-line table, read by ~4 SPEC-phase sessions. Negligible, and
+the alternative is a dangling reference in a committed file.
+
+#### 71c — Where the tokens actually are *(open — recommended)*
+
+Two findings the measurement surfaced, both larger than either dedup:
+
+1. **`plan.md` runs at roughly double its own stated budget.** `worker-plan.md` says **"50-150 lines
+   is the healthy range: under 50 usually means under-specified, over 150 usually means you are
+   writing implementation detail that belongs in the code."** Measured: **38 of 47 exceed 150**, 17
+   exceed 300, mean **286**. This is the single largest per-round read in the pipeline and the rule
+   against it already exists — another compliance failure rather than a missing rule, the same shape
+   as the Impact Map currency finding in item 69. Enforcing it (Reviewer checks length as a PLAN
+   dimension) would roughly halve the ~2260-line figure.
+2. **Agreed item 59 adds ~670 lines of new per-task reading** by routing the governing spec to PLAN
+   and CODE agents. That is real and was not priced when it was agreed. It is partly paid for by
+   agreed item 67 (option A): TASK-032's spec carries 26 `.kt` refs and TASK-038's 43 line refs, and
+   removing implementation detail from `## Behavior` and `## Acceptance criteria` should shrink specs
+   materially. Worth re-measuring spec length after 67 lands rather than assuming.
+
+Already-agreed items that cut reads and should be noted as paying part of this bill: **41** (shrink
+`worker.md` Step 0.2, read by every Worker every round), **55** (move five code rules out of
+`worker.md` into `worker-code.md`), **14.4** (`orchestrator-notes.md` size discipline — "this file
+holds only what no other artifact holds", 920 B to 21 KB today).
