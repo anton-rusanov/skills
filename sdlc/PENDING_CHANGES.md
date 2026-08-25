@@ -25,7 +25,7 @@ One line per item, so a bare number is resolvable without scrolling.
 | 1 | One authority for the round cap |
 | 2 | The ROADMAP `[DONE]` flip belongs to the Orchestrator |
 | 3 | Handle the in-session `killed` notification |
-| 4 | A real gate on Reviewer errors |
+| 4 | A real gate on Reviewer errors — **SETTLED 2026-08-22, see item 65: evidence floor only, no adjudicator** |
 | 5 | Reviewer trigger table is missing the CODE-only trigger |
 | 6 | Per-phase review filenames |
 | 7 | Delete the archaeology |
@@ -72,7 +72,26 @@ One line per item, so a bare number is resolvable without scrolling.
 | 48 | The Worker is told to read `orchestrator-notes.md` for only one of its four purposes |
 | 49 | `Depends on:` is checked but never re-checked |
 | 50 | Item 2 has a fourth site — and it is a *spec* file |
-
+| 51 | `progress.md` adoption tracks `orchestrator-notes.md` exactly |
+| 52 | The Worker is told to emit a block reason with no field and no template |
+| 53 | The Orchestrator relabels a correct Worker block as a protocol failure |
+| 54 | The `date` command needs the `Z` and seconds baked in |
+| 55 | "What NOT to do" restates phase-file rules and is read where they cannot apply |
+| 56 | A `progress.md` heartbeat line — parked, author unconvinced |
+| 57 | `progress.md` needs entry *types*, not more detail |
+| 58 | The Reviewer self-selects its task, the same way the Worker did |
+| 59 | PLAN and CODE Reviewers are never told to read the governing spec |
+| 60 | In a single-repo project the unaccounted-changes sweep reports the siblings |
+| 61 | The `BLOCKED` reason vocabulary is split across three files with no canonical list |
+| 62 | The review template has no `## Verification` section, so 51 reviews invented ten |
+| 63 | Step 6 is an empty section |
+| 64 | `handoff.md` on `BLOCKED` — two files disagree about where block details live |
+| 65 | Item 4 (the Reviewer-error gate) — SETTLED: evidence floor only |
+| 66 | The three-architects PLAN fan-out has never fired |
+| 67 | Specs are pinning implementation, and it is measurable |
+| 68 | Spot-check 1 — reconciling `## Assumptions` with `## Assumed Decisions` |
+| 69 | Spot-check 2 — the unreviewed-file hole, and a reconsideration of item 12 |
+| 70 | Spot-check 3 — `worker-plan.md`'s Impact Map paragraph states a purpose that becomes false |
 ---
 
 ## Agreed
@@ -1370,7 +1389,7 @@ machine-countable, so the trigger is measurable without building anything now.
 **Explicitly still rejected:** a second full reviewer (doubles cost, same failure mode), and
 Orchestrator spot-checks (its value is never reading a diff).
 
-### 66. The three-architects PLAN fan-out has never fired *(open)*
+### 66. The three-architects PLAN fan-out has never fired *(open follow-up to agreed item 67)*
 `worker-plan.md` tells a PLAN Worker that when a task "genuinely admits multiple viable
 architectures", it should "spawn three `Plan`-type agents in parallel (one message, three `Agent`
 calls)" with Minimal / Clean / Pragmatic mandates.
@@ -1404,7 +1423,7 @@ status honestly rather than either trusting or deleting it.
 
 ## Spec scope, and spot-checks 1-3
 
-### 67. Specs are pinning implementation, and it is measurable *(open — the author's question)*
+### 67. Specs are pinning implementation, and it is measurable *(agreed — option A)*
 `worker-spec.md` already forbids this: *"Keep the spec on **what** and **why**. The **how** belongs in
 `plan.md`, which comes later — don't let the spec drift into implementation detail."* The instruction
 exists and is being violated.
@@ -1450,7 +1469,7 @@ is doing PLAN's job, so PLAN has no architecture left to choose. The two items a
 Note A has a knock-on: if specs stop pinning sites, the fan-out precondition stops being rare and an
 **untested branch starts executing** (item 66). Decide them together.
 
-### 68. Spot-check 1 — reconciling `## Assumptions` with `## Assumed Decisions` *(proposal)*
+### 68. Spot-check 1 — reconciling `## Assumptions` with `## Assumed Decisions` *(OPEN — awaiting the author)*
 Two lists of "decisions made without asking the user" would exist:
 
 | | Written by | Where | Durable? | When |
@@ -1470,7 +1489,7 @@ whatever it happened to guess) and gives the user one durable record instead of 
 - **C — drop the Worker's `## Assumptions`, keep only the review file.** Rejected: review files are
   gitignored and disposable, so the durable record vanishes — the same dead-letter failure as item 26.
 
-### 69. Spot-check 2 — the unreviewed-file hole, and a reconsideration of item 12 *(open)*
+### 69. Spot-check 2 — the unreviewed-file hole, and a reconsideration of item 12 *(OPEN — awaiting the author)*
 The hole: `reviewer.md` Step 1.4 reviews Impact Map paths "**and only those**" and is told not to
 review unaccounted ones; item 12 moves *staging* to a Worker-maintained `changed-files.md`. Composed,
 a legitimate round-2 fix in a file the map does not name is **staged and committed without ever being
@@ -1498,7 +1517,7 @@ existing rule**, not a missing mechanism.
 - **C — block on any file outside the map.** Rejected: round 2 legitimately adds files; this blocks
   normal operation.
 
-### 70. Spot-check 3 — `worker-plan.md`'s Impact Map paragraph states a purpose that becomes false *(agreed — fix)*
+### 70. Spot-check 3 — `worker-plan.md`'s Impact Map paragraph states a purpose that becomes false *(agreed — fix; wording follows item 69)*
 *"three later steps read this table to stay out of each other's way: the CODE Worker checks the working
 tree only in the repos it names, the Reviewer reviews only the paths it names, and **the Orchestrator
 stages exactly those paths at commit time**."*
@@ -1506,3 +1525,33 @@ stages exactly those paths at commit time**."*
 Under item 12 the third clause is false and the second becomes the hole in item 69. Rewrite to match
 whichever of 69's options is chosen; if B, the paragraph names `changed-files.md` as the staging list
 and the review scope as the union.
+
+**Decided on 67 (author, 2026-08-22): option A.** Code citations are allowed in `## Context` as
+evidence of the problem; `## Behavior` and `## Acceptance criteria` state observable outcomes only.
+The test — *"would this criterion still be satisfiable if the implementer chose a different file?"* —
+lands in **both** `worker-spec.md` and `review-spec.md`, the latter because its Verifiable-criteria
+dimension is what drives the drift.
+
+**Open follow-up, carried on item 66:** with specs no longer pinning sites, the fan-out's precondition
+stops being systematically rare and a branch that has **never executed in the entire corpus** starts
+firing. Nothing has tested the three-way spawn, the comparison step, or how the chosen approach reaches
+`## Approach`. Decide before implementation whether to (a) leave it and accept a first live exercise,
+(b) test it deliberately on one task, or (c) simplify it to a single-agent "name and reject one
+alternative" requirement, which is what the three declining Workers actually did in prose.
+
+---
+
+## Status at the end of the walkthrough
+
+`SKILL.md` was walked in session 1 (items 1-20). `worker.md`, `reviewer.md` and the phase files were
+walked in session 2 (items 21-70). The walk is complete.
+
+**Open, awaiting the author:** 68 (assumption-list reconciliation), 69 (unreviewed-file hole /
+whether `changed-files.md` survives the reconsideration), and the 66 follow-up above. Item 70's
+wording depends on 69.
+
+**Withdrawn by measurement:** 60 (sibling files in the unaccounted sweep — never happened), and item
+47's original eligibility-rules premise. Item 22 was narrowed by the author's ROADMAP-link
+explanation, and item 56 was reopened after the author declined my start-entry rejection.
+
+Everything else is agreed and ready to be turned into a Spec.
