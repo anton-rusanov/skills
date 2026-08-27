@@ -1634,3 +1634,123 @@ Already-agreed items that cut reads and should be noted as paying part of this b
 `worker.md` Step 0.2, read by every Worker every round), **55** (move five code rules out of
 `worker.md` into `worker-code.md`), **14.4** (`orchestrator-notes.md` size discipline — "this file
 holds only what no other artifact holds", 920 B to 21 KB today).
+
+## Plan length, item 59 re-examined, and the missing spec template
+
+### 72. The plan-length budget — WITHDRAWN, the author's worry is correct *(my proposal, refuted)*
+I proposed enforcing `worker-plan.md`'s 50-150 line budget as a PLAN review dimension. The author
+objected that cutting length could cut substance. **The corpus agrees with the author, not with me.**
+
+**Length is not accumulation.** Excluding the `## Review Response` / `## Implementation Notes`
+sections that later rounds append by design, the *core* plan still runs long: median **237** lines,
+**33 of 47** over 150. So the plans themselves are long, not merely grown.
+
+**But length is not bloat either.** The guidance's own stated rationale is *"over 150 usually means you
+are writing implementation detail that belongs in the code."* Measured: **43 of 47 plans contain zero
+code blocks**; the maximum anywhere is 4. TASK-028's plan is the longest in the corpus at 559 core
+lines with **no code at all** — its bulk is `## Approach` (256), `## Test Plan` (67), `## Acceptance
+Criteria` (47), `## Risks & Open Questions` (42). That is reasoning and contract, not pasted
+implementation. **The rule's diagnosis does not describe what is actually in the long files.**
+
+**And length does not predict defects.** Grouping by core length against CODE-phase outcomes:
+
+| Group | n | mean CODE Criticals | mean CODE rounds |
+|---|---|---|---|
+| core ≤ 200 lines | 20 | 0.10 | 1.05 |
+| core > 200 lines | 27 | 0.33 | 1.41 |
+
+The weak positive association runs the *wrong way* for my proposal and is in any case confounded by
+task difficulty — harder tasks get both longer plans and more findings. Decisively, four of the six
+longest plans produced **zero** CODE Criticals, including the 559-line one and B21/B22/SESSION-009-C.
+There is no evidence in this corpus that long plans are worse plans.
+
+**Answer to the author's mechanism question.** The only defensible test is a *content* test, never a
+line count: *does this line state a decision, a constraint, or the evidence for one — or does it
+restate code the diff will show?* Measured, the second category barely exists here, so a Reviewer
+dimension for it would fire almost never. That is a reason not to add the dimension, not a reason to
+add it with a number attached. **A Reviewer must never flag length per se**; there is nothing in the
+data that would justify it.
+
+### 73. Fix the 50-150 guidance text instead *(recommended)*
+The rule is not merely unenforced, it is **misleading**, and it costs Workers effort. TASK-038's
+Worker wrote: *"plan.md written (247 lines — over the 150 guidance, deliberately: 11 ACs, all
+mapped)"* — a Worker spending words apologising to a rule whose rationale does not match its own
+situation. TASK-028 exceeded it by 3.7x with a clean CODE phase.
+
+**Options:**
+- **A (recommended)** — replace the number with the content test from item 72 and keep a soft floor:
+  *"under ~50 lines usually means under-specified. There is no upper bound: length should track the
+  task's real complexity. What does not belong is restating code the diff will show."*
+- **B** — raise the ceiling to match observed practice (median core 237, so ~250-300) and keep a
+  number. Cheaper edit, but re-creates the same apologising behaviour one bracket higher.
+- **C** — leave it. Costs: Workers keep justifying themselves against a false rationale, and any future
+  reader may try to enforce it as I did.
+
+### 74. Item 59 restated and re-priced *(agreed in principle; scope OPEN)*
+**What it says:** `reviewer.md` Step 0.5 names `ROADMAP.md` as the Reviewer's "source of truth for what
+the task should accomplish"; Step 1.4 routes the governing spec to the **SPEC phase only**. Nothing
+tells a PLAN or CODE Reviewer to read the spec, even though on a spec-governed task the spec — not the
+nine-line ROADMAP row — is what the work was built against, and the Orchestrator commits the two
+together.
+
+**What motivated it:** **41 of 133** PLAN/CODE review files cite a `spec/spec-*` path anyway — a third
+of all reviews routing around the gap unaided. The author's explanation covers most of it (7 of 27
+`ROADMAP.md` rows carry a `**Spec**:` field that Step 0.5 already routes to), but not all: **TASK-044's
+spec is cited nowhere in `ROADMAP.md`**, so that Reviewer had no channel at all.
+
+**What it costs:** the governing spec is median **170** lines (mean 206, max 491, n=34). Routing it to
+~4-5 PLAN/CODE Reviewer sessions is **~700-850 lines per task** of new reading. About a third of that
+is already being paid voluntarily by the 41 reviews that fetch it today, so the true marginal cost is
+nearer **~500 lines/task**.
+
+**Options, priced against the failure it prevents — a Reviewer approving work against the wrong
+contract:**
+- **A — full spec to PLAN and CODE Reviewers.** Cost ~500 marginal lines/task. Prevents the failure
+  completely. Simplest to state.
+- **B — only when the ROADMAP row links one**, plus the item-59 requirement that a spec-governed row
+  must carry `**Spec**:`. Cost: identical reading when a spec exists; the saving is zero. What it buys
+  is that spec-less tasks are never sent hunting. Effectively A with a guard.
+- **C — only the outcome sections, skipping `## Context`.** *Not implementable as stated, and this
+  refutes my own earlier phrasing* — see item 75. Only **8 of 34** specs have a `## Behavior` section;
+  `## Requirements` (17) is the commoner name, and median Behavior+AC is **19.5 lines of 170**, because
+  the sections mostly are not there under those names. Cannot be revived without item 75.
+- **D — drop it; rely on the ROADMAP row plus the `**Spec**:` link for Reviewers that want it.**
+  Cost: zero. Accepts the TASK-044 case, where the row links nothing and the Reviewer reviewed against
+  a nine-line summary of a 253-line spec. Note the corpus shows Reviewers fetch the spec unaided when
+  they can find it, so D mostly formalises today's behaviour.
+
+**Recommendation: B**, and revisit C after item 75. B costs what A costs but never sends a Reviewer
+looking for a document that does not exist, and it pairs with the `**Spec**:` requirement already
+agreed. Also note agreed item 67 should shrink specs — TASK-032 carries 26 `.kt` refs, TASK-038 43
+line refs — so re-measure before treating the ~500 lines as permanent.
+
+### 75. There is no spec template, and that is the root cause of two other problems *(recommended)*
+`worker-spec.md` (36 lines) tells the Worker to edit the spec, keep it on *what* and *why*, and record
+assumptions — but **never says what sections a spec has**. Every other artifact in this skill has a
+template: `plan.md`, `status.md`, the review file, `handoff.md`, `dispatched.md`. The spec, the only
+one that is **committed and permanent**, has none.
+
+Result: 34 specs, **20+ distinct top-level section names**. `## Acceptance criteria` 28/34;
+`## Assumptions` 21; `## Value` 19; `## Requirements` 17; `## Why` 14; `## Scope` 9; `## Constraints`
+9+5; `## Non-goals` 8+3; `## Behavior` **8**; plus one-offs like `## Root cause`, `## Part …`,
+`## Verify against current Alpaca docs at implementation`.
+
+Same failure as item 14 defect 3 (no template → six `orchestrator-notes.md` vocabularies) and item 62
+(no `## Verification` section → ten headings). This one is worse because the artifact is durable.
+
+**It also breaks two already-agreed items:**
+1. **Item 67** (agreed, option A) is written as "code citations allowed in `## Context`;
+   `## Behavior` and `## Acceptance criteria` state observable outcomes only." Only 8 of 34 specs have
+   `## Behavior` and few have `## Context`. **The agreed rule must be restated section-agnostically**
+   — "any section stating what the system must do" — or the template must come first.
+2. **Item 59 option C** (read only the outcome sections) is unimplementable without it.
+
+**Options:**
+- **A (recommended)** — add a spec template to `worker-spec.md` with the sections the corpus already
+  converged on: `## Value` / `## Why`, `## Requirements`, `## Acceptance criteria`, `## Non-goals`,
+  `## Assumptions`, and an optional `## Context` for evidence. This ratifies observed practice rather
+  than inventing structure, makes item 67 statable, and revives item 59 option C.
+- **B** — restate item 67 section-agnostically and leave specs unstructured. Cheaper; leaves the
+  durable artifact as the only untemplated one and keeps option C dead.
+- **C** — do nothing. Item 67 as currently worded applies to sections most specs do not have, i.e. it
+  would silently no-op.
