@@ -1671,7 +1671,7 @@ dimension for it would fire almost never. That is a reason not to add the dimens
 add it with a number attached. **A Reviewer must never flag length per se**; there is nothing in the
 data that would justify it.
 
-### 73. Fix the 50-150 guidance text instead *(recommended)*
+### 73. Fix the 50-150 guidance text instead *(agreed — option B, the author's call over my recommendation of A)*
 The rule is not merely unenforced, it is **misleading**, and it costs Workers effort. TASK-038's
 Worker wrote: *"plan.md written (247 lines — over the 150 guidance, deliberately: 11 ACs, all
 mapped)"* — a Worker spending words apologising to a rule whose rationale does not match its own
@@ -1686,7 +1686,7 @@ situation. TASK-028 exceeded it by 3.7x with a clean CODE phase.
 - **C** — leave it. Costs: Workers keep justifying themselves against a false rationale, and any future
   reader may try to enforce it as I did.
 
-### 74. Item 59 restated and re-priced *(agreed in principle; scope OPEN)*
+### 74. Item 59 restated and re-priced *(agreed — option B)*
 **What it says:** `reviewer.md` Step 0.5 names `ROADMAP.md` as the Reviewer's "source of truth for what
 the task should accomplish"; Step 1.4 routes the governing spec to the **SPEC phase only**. Nothing
 tells a PLAN or CODE Reviewer to read the spec, even though on a spec-governed task the spec — not the
@@ -1724,7 +1724,7 @@ looking for a document that does not exist, and it pairs with the `**Spec**:` re
 agreed. Also note agreed item 67 should shrink specs — TASK-032 carries 26 `.kt` refs, TASK-038 43
 line refs — so re-measure before treating the ~500 lines as permanent.
 
-### 75. There is no spec template, and that is the root cause of two other problems *(recommended)*
+### 75. There is no spec template, and that is the root cause of two other problems *(agreed — option A)*
 `worker-spec.md` (36 lines) tells the Worker to edit the spec, keep it on *what* and *why*, and record
 assumptions — but **never says what sections a spec has**. Every other artifact in this skill has a
 template: `plan.md`, `status.md`, the review file, `handoff.md`, `dispatched.md`. The spec, the only
@@ -1754,3 +1754,23 @@ Same failure as item 14 defect 3 (no template → six `orchestrator-notes.md` vo
   durable artifact as the only untemplated one and keeps option C dead.
 - **C** — do nothing. Item 67 as currently worded applies to sections most specs do not have, i.e. it
   would silently no-op.
+
+### Decisions on 73 / 74 / 75 (author, 2026-08-22)
+
+- **73 = option B.** Raise the ceiling to ~250-300 and keep a number. I recommended **A** (replace the
+  number with the content test, keep only a soft floor); the author chose B. **Caveat preserved for
+  whoever implements it:** a number reproduces the apologising behaviour one bracket higher — TASK-038
+  wrote *"247 lines — over the 150 guidance, deliberately"* — and TASK-028's clean 559-line plan would
+  still breach a 300 ceiling by 1.9x. Mitigation worth folding into the wording: state the ceiling as
+  *guidance about typical complexity, never a review criterion*, and say explicitly that a Reviewer
+  must not raise a finding on length (item 72). That keeps the author's number without arming it.
+- **74 = option B.** The governing spec is routed to PLAN and CODE Reviewers **only when the ROADMAP
+  row links one**, paired with the already-agreed requirement that a spec-governed row must carry a
+  `**Spec**:` field. Spec-less tasks send nobody hunting. Re-measure the ~500 line/task cost after
+  item 67 lands, since removing implementation detail should shrink specs.
+- **75 = option A.** Add the corpus-converged template to `worker-spec.md`: `## Value` / `## Why`,
+  `## Requirements`, `## Acceptance criteria`, `## Non-goals`, `## Assumptions`, plus an optional
+  `## Context` for evidence. **Agreed item 67 is restated against these sections** — citations allowed
+  in `## Context`, with `## Requirements` and `## Acceptance criteria` stating observable outcomes only
+  — which removes the no-op risk from 67's original `## Behavior` phrasing. **59 option C stays moot**
+  now that 59B is chosen, though the template would make it available if the cost is ever revisited.
