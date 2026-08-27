@@ -92,6 +92,11 @@ One line per item, so a bare number is resolvable without scrolling.
 | 68 | Spot-check 1 — reconciling `## Assumptions` with `## Assumed Decisions` |
 | 69 | Spot-check 2 — the unreviewed-file hole, and a reconsideration of item 12 |
 | 70 | Spot-check 3 — `worker-plan.md`'s Impact Map paragraph states a purpose that becomes false |
+| 71 | Deduplication and read amplification — measured |
+| 72 | The plan-length budget — WITHDRAWN, the author's worry is correct |
+| 73 | Fix the 50-150 guidance text instead |
+| 74 | Item 59 restated and re-priced |
+| 75 | There is no spec template, and that is the root cause of two other problems |
 ---
 
 ## Agreed
@@ -428,7 +433,7 @@ so by the letter of the protocol the first Phase-0 Reviewer must stop. Nothing t
 create `status.md`, and the template has no `phase:` slot, so `phase: SPEC` has no channel to travel
 on. 23 tasks ran SPEC rounds anyway, which means Orchestrators improvised past this every time.
 
-### 22. There is no channel for naming the governing spec *(open)*
+### 22. There is no channel for naming the governing spec *(RESOLVED by agreed items 74 + the `**Spec**:` requirement)*
 `SKILL.md` triggers Phase 0 when "the prompt references a `spec/spec-*.md` **or** the ROADMAP task
 links one" — but if it came from the prompt, neither Worker nor Reviewer ever learns which file.
 Both protocols only say "the spec file the task references". Agents plugged the hole themselves: **8
@@ -436,7 +441,7 @@ of 47** `status.md` files carry an invented `spec:` key (A5, A7, B9, B11, B15-li
 SESSION-10), and one carries `plan:`/`review:`/`summary:` as well. The handshake schema is five keys;
 agents needed six.
 
-### 23. Item 6 lands harder than recorded — two rival conventions, not one improvisation *(recommended)*
+### 23. Item 6 lands harder than recorded — two rival conventions, not one improvisation *(agreed — folded into item 6; fixes Step 1.2's read-list too)*
 The corpus shows **six** tasks inventing per-phase filenames across six weeks, in **two mutually
 incompatible mappings**:
 - B10 (2026-07-05), B15-live (2026-07-15), TASK-044 (2026-08-16): `plan-review-round-N.md` for PLAN,
@@ -455,7 +460,7 @@ files are the **PLAN** reviews. A CODE Reviewer following the protocol literally
 phase's findings and escalates them. Item 6 must therefore also fix Step 1.2's read-list, not just
 the write-name.
 
-### 24. `worker.md` Step 5's round rule is arithmetically wrong *(recommended)*
+### 24. `worker.md` Step 5's round rule is arithmetically wrong *(agreed — folded into item 6)*
 Step 5: "The round number is the count of existing review files for **this phase** — …otherwise
 `review-round-N.md`. First submission is round 1." With the shared counter, a CODE Worker's first
 submission after 3 PLAN rounds counts 3 files and writes `round: 3`. The rule contradicts its own
@@ -464,7 +469,7 @@ this phase, plus 1"). Both are *unexecutable* today — you cannot tell a file's
 This is the same defect `SKILL.md` currently papers over with a warning paragraph; item 6 deletes the
 cause in all three files at once.
 
-### 25. Files outside the Impact Map are reported but never reviewed — and then staged *(open)*
+### 25. Files outside the Impact Map are reported but never reviewed — and then staged *(RESOLVED by agreed item 69 option B — Reviewer reviews the union)*
 `reviewer.md` Step 1.4 (CODE): review "the paths in the plan's `## Impact Map`, **and only those**",
 then list anything else as an unaccounted change and "**do not review it**". Item 12 changes staging
 to a Worker-maintained `changed-files.md`. Composed, those two give a path that is *staged and
@@ -533,7 +538,7 @@ that escaped became TASK-045, and B15-live's 404 finding is a live-path defect t
 section of the `handoff.md` template in `reviewer.md` Step 5. `handoff.md` keeps exactly one writer.
 B, C and D are rejected.
 
-### 27. `## Observations for Future Tasks` is not in the `plan.md` template *(recommended)*
+### 27. `## Observations for Future Tasks` is not in the `plan.md` template *(agreed — follows item 26)*
 Two files instruct the Worker to write into a section `worker-plan.md`'s template never defines.
 
 ### 28. Item 11's premise is only half true — the Reviewer has no clock *(agreed — see item 38 for the final form)*
@@ -554,14 +559,14 @@ review that was already done, and burning the round budget on a death. Needs a r
 for the current round already exists and no Worker has submitted since, replace it rather than
 increment.
 
-### 30. `reviewer.md` never mentions `orchestrator-notes.md` or `progress.md` *(open)*
+### 30. `reviewer.md` never mentions `orchestrator-notes.md` or `progress.md` *(agreed — same fix as item 48, applied to the Reviewer)*
 Item 14 establishes `orchestrator-notes.md` as the only surviving record of in-session user decisions,
 round-budget corrections, and pre-authorized scope. The Worker is told to honor an `## Interruptions`
 entry. The Reviewer is told nothing — so a Reviewer can block on a deviation the user explicitly
 pre-authorized, or flag a partial tree the Orchestrator already logged. At minimum the Reviewer
 should read it in Step 0.
 
-### 31. Item 1 and item 10 each have a second site in the phase files *(recommended)*
+### 31. Item 1 and item 10 each have a second site in the phase files *(agreed — folded into items 1 and 10)*
 - Item 1 (round cap): the hardcoded `3` is in `reviewer.md` at Step 5 NEEDS_FIXES, Step 5 BLOCKED,
   and the "Don't approve because it's round 3" rule — three sites, all needing `MaxRounds` passed in.
 - Item 10 (`SPEC_TOO_AMBIGUOUS`): the cap-of-5 is duplicated in **`review-spec.md`** ("Cap
@@ -569,7 +574,7 @@ should read it in Step 0.
   `## Assumed Decisions` table belong in `review-spec.md`'s Triage section, which is where the
   Reviewer actually makes the call.
 
-### 32. Item 10 collides with an existing `## Assumptions` section *(open)*
+### 32. Item 10 collides with an existing `## Assumptions` section *(RESOLVED by agreed item 68 option A)*
 `worker-spec.md` already tells the SPEC Worker to record what it guessed in an `## Assumptions`
 section **inside the spec file**, calling it "the user's cheap second catch". Item 10 puts an
 `## Assumed Decisions` table in `spec-review-round-N.md`, written by the **Reviewer**, surfaced at the
@@ -809,7 +814,7 @@ Two consequences:
 
 ## `worker.md` Step 0 — Pre-flight
 
-### 39. Step 0.1 tells the Worker to make an edit Step 0.2 would later call debris *(open)*
+### 39. Step 0.1 tells the Worker to make an edit Step 0.2 would later call debris *(agreed — Orchestrator does it once at setup)*
 > "**`.agents/sdlc/` must be gitignored.** If `.gitignore` doesn't cover it, add it."
 
 That edit is an uncommitted source change, and `.gitignore` appears nowhere in Step 0.2's list of
@@ -825,7 +830,7 @@ Options: have the **Orchestrator** do it once at run setup (it already commits t
 its own, so it has a committing path); or keep it in the Worker and add `.gitignore` to both the
 legitimacy list and the staging list.
 
-### 40. The per-repo scoping is a no-op in this project *(open)*
+### 40. The per-repo scoping is a no-op in this project *(agreed — keep multi-repo machinery, strip project-specific names)*
 Step 0.2 scopes the tree check to "each repo named in the plan's `## Impact Map`" and grants
 exclusivity "only over the repos in its Impact Map". Measured: **69 Impact Map rows across the task
 corpus carry exactly one repo value** (`ricci` × 57, `Ricci` × 12). Ricci is a single repository —
@@ -837,7 +842,7 @@ machinery (`backend`, `frontend`, `mls-integration`, `(umbrella)`) is inherited 
 project shape. If scoping is meant to do real work in a single-repo project it has to be **path**-
 scoped, not repo-scoped — which is also the granularity item 12's `changed-files.md` produces.
 
-### 41. Step 0.2 has never fired — not once *(open)*
+### 41. Step 0.2 has never fired — not once *(agreed — reduce verbosity, keep every rule)*
 **0 of 73 Worker sessions** ever wrote `DIRTY_WORKING_TREE` into `status.md`. The string appears in
 84 transcripts only because `worker.md` itself contains it and every Worker reads `worker.md`; no
 session ever latched the block. Step 0.2 is ~55 lines — roughly a third of `worker.md` — of machinery
@@ -847,7 +852,7 @@ Three readings, and the corpus does not fully separate them: it is purely preven
 and stay clean); it is dead weight; or Workers are routed around it. Item 42 is evidence for the
 third.
 
-### 42. The legitimacy list is missing "the task's own ROADMAP row is new" *(recommended)*
+### 42. The legitimacy list is missing "the task's own ROADMAP row is new" *(agreed)*
 Step 0.2 legitimises the Orchestrator's `[PENDING]` → `[IN_PROGRESS]` **flip** of an existing row and
 uncommitted edits to the **governing spec**. It does not cover the case where the ROADMAP row itself
 is new and uncommitted — which is what happens whenever a spec and its task are authored together,
@@ -1541,20 +1546,6 @@ alternative" requirement, which is what the three declining Workers actually did
 
 ---
 
-## Status at the end of the walkthrough
-
-`SKILL.md` was walked in session 1 (items 1-20). `worker.md`, `reviewer.md` and the phase files were
-walked in session 2 (items 21-70). The walk is complete.
-
-**Open, awaiting the author:** 68 (assumption-list reconciliation), 69 (unreviewed-file hole /
-whether `changed-files.md` survives the reconsideration), and the 66 follow-up above. Item 70's
-wording depends on 69.
-
-**Withdrawn by measurement:** 60 (sibling files in the unaccounted sweep — never happened), and item
-47's original eligibility-rules premise. Item 22 was narrowed by the author's ROADMAP-link
-explanation, and item 56 was reopened after the author declined my start-entry rejection.
-
-Everything else is agreed and ready to be turned into a Spec.
 
 ### 71. Deduplication and read amplification — measured *(author's question; 71a/71b agreed, 71c open)*
 
@@ -1774,3 +1765,29 @@ Same failure as item 14 defect 3 (no template → six `orchestrator-notes.md` vo
   in `## Context`, with `## Requirements` and `## Acceptance criteria` stating observable outcomes only
   — which removes the no-op risk from 67's original `## Behavior` phrasing. **59 option C stays moot**
   now that 59B is chosen, though the template would make it available if the cost is ever revisited.
+
+---
+
+## Status — 2026-08-27
+
+The walk is complete: `SKILL.md` in session 1 (items 1-20), `worker.md`, `reviewer.md` and the phase
+files in session 2 (items 21-75). Header markers were re-scanned rather than recalled, and twelve
+were corrected: items 22, 23, 24, 25, 27, 30, 31, 32, 39, 40, 41 and 42 were decided or resolved by
+later decisions but still read *open*/*recommended*. They now read correctly.
+
+**Genuinely open — five topics, each with options already recorded:**
+
+| # | Topic | Options |
+|---|---|---|
+| **21** | Phase 0's first dispatch is illegal by the letter of the protocol; 7/7 Orchestrators fabricate `status.md` to get past it. Item **46** (who owns `status.md` creation) depends on this. | **A (rec.)** ratify it — `SKILL.md` tells the Orchestrator to write `status.md` before the Phase-0 dispatch and the Reviewer template gains a `phase` slot; **B** give the SPEC Reviewer a create-it-yourself branch; **C** dispatch a no-op Worker first (rejected — nothing for it to do) |
+| **29** | A Reviewer killed after writing `review-round-N.md` but before `status.md` leaves `AWAITING_REVIEW`; the successor counts files +1 and burns a round on a death | **A (rec.)** idempotency rule — if a review file for the current round exists and no Worker submitted since, replace rather than increment; **B** give the Reviewer a `progress.md` (expensive; reviews are 12.6 min median); **C** nothing |
+| **34** | `/verify` carry-forward: 3 of 25 CODE Reviewers approved on an earlier round's green with sound narrow-delta reasoning the protocol forbids, and the Orchestrator's commit gate cannot tell carried-forward from fresh | **A (rec.)** codify it and require `## Verification` to name the round the green came from; **B** forbid it, always re-run; **C** nothing — three approvals stay out of compliance |
+| **56 / 57** | `progress.md` entry types. The author declined my start-entry rejection and parked it; the corpus supports them (TASK-044's predecessor wrote a start entry and then died, carrying the intended order to its successor) | **A (rec.)** labelled types — `DONE` / `START` / `NOTE`, one word per line, which makes start entries safe and gives anomaly observations a home; **B** keep milestone-only; **C** milestone-only plus `NOTE` for anomalies |
+| **66** | The three-architects PLAN fan-out has **never executed** (0 `Plan`-type spawns in the corpus). Agreed item 67 removes the reason it never fires, so an untested branch starts running | **A** leave it and accept a first live exercise; **B** deliberately test it on one task; **C (rec.)** simplify to a single-agent "name and reject one alternative", which is what the three declining Workers did in prose anyway |
+
+**Withdrawn by measurement, not argument:** item **60** (sibling files in the unaccounted sweep — never
+happened in the corpus), item **72** (the plan-length budget — the author's objection was right, and
+43 of 47 plans contain zero code blocks), and item **47**'s original eligibility-rules premise. Item
+**22** was narrowed by the author's ROADMAP-link explanation before being resolved outright.
+
+**Everything else is agreed.** The list is ready to become a Spec once the five above are settled.
