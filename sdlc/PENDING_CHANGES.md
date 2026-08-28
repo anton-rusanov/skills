@@ -2026,3 +2026,80 @@ evidence floor alone (items 4/65).
 5. **Item 75 (spec template) precedes item 67 (spec scope)**, which is worded against its sections.
 6. **Item 66 (exercise the fan-out) comes after item 67**, which is what makes a genuine fork
    reachable.
+
+---
+
+## Spec-drafting decisions (2026-08-27)
+
+### 76. Review scope is the manifest alone; the Impact Map is a completeness checklist *(supersedes the "union" wording in item 69)*
+The author challenged the union. **They are right and "union" was the wrong word** — you cannot
+*review* a file that has no diff. The two artifacts answer different questions and only one of them is
+a review scope:
+
+| Question | Answered by | Who asks it |
+|---|---|---|
+| What changed, and what do I read? | **`changed-files.md`** — the Worker's claim, written by the agent that made the edits | CODE Reviewer (read scope), Orchestrator (staging) |
+| What was promised, and was any of it silently dropped? | **Impact Map** — declared intent, frozen at PLAN approval | CODE Reviewer (completeness only) |
+| Whose is this file I did not expect? | `git status` minus the manifest | CODE Reviewer (report, do not review, do not attribute) |
+
+**What manifest-alone would lose is real: silent omission.** A plan that declares
+`docs/CONFIGURATION.md` MODIFY and a Worker that never touches it produces a manifest with no such
+row — nothing to notice. The skill already treats this class as blocking in a narrower form: a test
+the plan committed to and the code dropped is *always* Critical, never a Recommendation. A **file**
+the plan committed to and the code dropped is the same failure, and `review-code.md` already uses the
+map this way ("Check the diff against the doc files in the plan's Impact Map").
+
+**And the manifest gets a cross-check it would otherwise lack.** A Worker that forgets or misstates a
+row is caught because the file still appears in `git status` and falls into the unaccounted sweep —
+the mechanism item 60 measured as working. Manifest and `git status` check each other; the map checks
+neither.
+
+**Net effect on reads** (the point of item 71a): the Orchestrator stops opening `plan.md` entirely at
+commit time — 251 median lines down to ~15. The map survives for two readers only: the PLAN Reviewer,
+who reviews it as intent, and the CODE Reviewer, who checks it for absences.
+
+### 77. Self-hosting the rewrite — the hazard is uncommitted protocol text governing live agents *(recommended)*
+The rewrite runs through the pipeline it is rewriting. Three exposures, only one of them sharp:
+
+1. **Across tasks (benign, and intended).** Task N commits protocol edits; task N+1 runs under them.
+   The edits were reviewed and committed. With the right ordering this is the *hardening*, not the
+   hazard — see item 78.
+2. **The Orchestrator's own stale context (minor).** It read `SKILL.md` at run start and holds it for
+   every task. A task that rewrites `SKILL.md` leaves the Orchestrator acting on superseded rules.
+3. **Within one task (sharp).** A Worker edits `reviewer.md`; the Reviewer dispatched to judge that
+   edit reads the working tree and is **governed by the unreviewed text it is reviewing.** Uncommitted,
+   unapproved protocol changes are in force for the agent deciding whether to approve them.
+
+**Mechanisms, priced:**
+
+| # | Mechanism | Cost | Verdict |
+|---|---|---|---|
+| M1 | Edit a copy of the skill dir, swap at the end | The docs and prompts are full of self-referential paths (`.agents/skills/sdlc/references/worker.md`); a copy needs every path rewritten or it is wrong. `/verify` for a docs change *is* running the pipeline, which would run the live copy | Reject — high friction, and the isolation it buys is mostly re-bought by M5 |
+| M2 | Pin the submodule SHA at run start; every dispatch reads the protocol at that SHA | Subagents must read via `git show` rather than opening a file — a bash call instead of Read, and every prompt template changes. Also freezes out the improvements the run is making | Reject |
+| M3 | Order tasks so protocol edits land last | Nearly all the work *is* protocol edits | Reject — no purchase |
+| **M5** | **When the task under review edits this skill, the Reviewer reads its own protocol from the last committed state, not the working tree** | One conditional sentence, firing only on self-hosting tasks | **Recommend** — targets exposure 3 exactly |
+| **M7** | **The Orchestrator re-reads `SKILL.md` at the start of each task when the run is editing the skill** | One sentence | **Recommend** — closes exposure 2 |
+
+M5 + M7 together are two sentences and leave exposure 1, which is the desired behaviour.
+
+### 78. Task breakdown — multiple tasks, one Orchestrator, in a row *(author's decision on assumption 2)*
+Eight tasks, ordered so the six sequencing constraints hold and so each task exercises the rules its
+predecessors installed:
+
+| # | Task | Items | Constraint satisfied |
+|---|---|---|---|
+| T1 | Contradictions and counters | 2, 50, 1, 31, 6, 23, 24, 45 | 2 |
+| T2 | Handshake, dispatch and self-selection | 21, 46, 5, 7, 44, 47, 58, 52, 53, 61 | 1, 4 |
+| T3 | Timestamps | 11, 28, 36, 38, 54 | 3 (internal) |
+| T4 | Recovery and liveness | 3, 15, 17, 18, 19, 20, 29, 14 | — |
+| T5 | Scope, staging and the manifest | 12, 25, 69, 70, 76, 39, 40, 41, 42 | — |
+| T6 | Dead-letter channels | 26, 27, 30, 37, 48, 62, 64, 13 | — |
+| T7 | Spec discipline | 75 → 67 → 10, 32, 68, 22, 59, 74 | 5 (internal) |
+| T8 | Review quality, verbosity, inputs | 4/65, 34, 35, 55, 73, 71, 8, 9, 16 | — |
+| T9 | Acceptance run + fan-out exercise | 66, criterion 13 | 6 |
+
+**The ordering is itself the hardening.** T1 installs per-phase review filenames and the corrected
+round counting, so T2 onwards run under them — every later task is a live test of an earlier one, and
+T9 runs under all of it. The corollary is that **T1 and T2 carry the most risk**: a defect there
+degrades every subsequent task's pipeline rather than only its own output. Worth running T1 and T2
+attended, and the rest unattended.
