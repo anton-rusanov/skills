@@ -1394,7 +1394,7 @@ machine-countable, so the trigger is measurable without building anything now.
 **Explicitly still rejected:** a second full reviewer (doubles cost, same failure mode), and
 Orchestrator spot-checks (its value is never reading a diff).
 
-### 66. The three-architects PLAN fan-out has never fired *(open follow-up to agreed item 67)*
+### 66. The three-architects PLAN fan-out has never fired *(agreed — option B, exercise it deliberately once)*
 `worker-plan.md` tells a PLAN Worker that when a task "genuinely admits multiple viable
 architectures", it should "spawn three `Plan`-type agents in parallel (one message, three `Agent`
 calls)" with Minimal / Clean / Pragmatic mandates.
@@ -1895,3 +1895,60 @@ reaches `## Approach`'s "Alternatives you considered".
   approach the single Worker would not have thought of — and that value has never been measured
   because the branch never ran. C forecloses it permanently, at precisely the moment item 67 makes
   architectural choice available again. That timing is what changed my recommendation.
+
+### 66 decided (author, 2026-08-27): option B
+Exercise the fan-out deliberately on one chosen task before relying on it. Nothing is amputated, and
+the three-way spawn / comparison / "Alternatives you considered" path gets its first execution under
+observation rather than mid-run on real work. Do this **after** item 67 lands, since 67 is what makes
+a genuine architectural fork reachable in the first place.
+
+### 34 (compressed) — the whole carve-out in three sentences *(open — author's call)*
+
+The author accepts the substance but not the instruction weight: today's rule is one sentence, simple
+but sometimes wasteful. **It compresses without losing anything.** Two of my three guardrails are one
+clause each, and the third does not live in `review-code.md` at all.
+
+**Current text** (`review-code.md`, ~35 words):
+
+> Then run `/verify` to exercise the change through its real runtime surface.
+> **A green `/verify` is a precondition for approval** — any failure here is finding #1, Critical.
+
+**Proposed replacement** (~50 words, +15):
+
+> **A green `/verify` is a precondition for approval** — run it yourself in any round whose diff
+> touches a file that enters the built binary. A round that changed only docs, comments or review
+> artifacts may carry an earlier green forward; name the round it came from. The test suite is
+> re-run every round, never carried.
+
+Plus **six words** in `SKILL.md` step 5, where guardrail 2 actually belongs: *"…recording a green
+`/verify`, **from this round or a named earlier one**."*
+
+**All three guardrails survive:**
+
+| Guardrail | Where it lands | Cost |
+|---|---|---|
+| 1 — name the round the green came from | clause 2 of the new text | ~7 words |
+| 2 — the Orchestrator's gate reads a named round, still never a diff | `SKILL.md` step 5 | ~6 words |
+| 3 — the suite is never carried forward | clause 3 | ~11 words |
+
+So the answer to "which guardrail would you sacrifice" is **none — the question does not arise at this
+size.** If one had to go it would be guardrail 1, and the cost is disproportionate: without a named
+round the Orchestrator's commit gate degrades from a mechanical check into reading prose that
+references a run nobody can locate, which is the failure item 34 exists to prevent.
+
+**A simpler alternative considered and rejected:** require `/verify` only in the round the Reviewer
+*approves*, skipping it on `NEEDS_FIXES` rounds. That is arguably already the literal reading ("a
+precondition for **approval**") and would cut runs on multi-round phases with no artifact test at all.
+Rejected because it does not address the observed cases — TASK-028 r5 and TASK-037 r5 were both
+**approving** rounds. The waste is precisely in the round this alternative protects.
+
+**Priced options:**
+
+- **A (recommended)** — the three-sentence replacement above. +15 words in `review-code.md`, +6 in
+  `SKILL.md`. Recovers the ~12% of CODE review rounds (3 of 25 measured) where a runtime re-run proves
+  nothing, and makes three sound approvals compliant instead of retroactively wrong.
+- **B** — keep today's one sentence. Simplest possible instruction; costs a full runtime exercise on
+  every docs-only approving round, and leaves capable Reviewers choosing between following the rule
+  and doing the sensible thing. Note they already chose the sensible thing three times, so the rule is
+  not actually being obeyed today.
+- **C** — the test only, dropping "name the round". Saves 7 words; costs the mechanical commit gate.
