@@ -586,7 +586,7 @@ gate-time render of decisions *not yet made*, the Worker's section is the durabl
 The terminal artifact exists in **45 of 47** task dirs (`summary.md` × 41 before the rename,
 `handoff.md` × 4 after). A run digest assembled from them has near-complete source coverage.
 
-### 34. `/verify` carry-forward is an undocumented carve-out agents invented *(open — detail below)*
+### 34. `/verify` carry-forward is an undocumented carve-out agents invented *(agreed — option A, compressed wording)*
 `review-code.md`: "A green `/verify` is a **precondition for approval** — any failure here is finding
 #1, Critical." `SKILL.md` step 5: the Orchestrator confirms `handoff.md` records a green `/verify`
 and refuses to commit without it. Measured: **21 of 25** CODE Reviewers exercised the runtime surface
@@ -1902,7 +1902,7 @@ the three-way spawn / comparison / "Alternatives you considered" path gets its f
 observation rather than mid-run on real work. Do this **after** item 67 lands, since 67 is what makes
 a genuine architectural fork reachable in the first place.
 
-### 34 (compressed) — the whole carve-out in three sentences *(open — author's call)*
+### 34 (compressed) — the whole carve-out in three sentences *(agreed — option A)*
 
 The author accepts the substance but not the instruction weight: today's rule is one sentence, simple
 but sometimes wasteful. **It compresses without losing anything.** Two of my three guardrails are one
@@ -1952,3 +1952,77 @@ Rejected because it does not address the observed cases — TASK-028 r5 and TASK
   and doing the sensible thing. Note they already chose the sensible thing three times, so the rule is
   not actually being obeyed today.
 - **C** — the test only, dropping "name the round". Saves 7 words; costs the mechanical commit gate.
+
+### 34 decided (author, 2026-08-27): option A
+The three-sentence replacement in `review-code.md` plus the six-word clause in `SKILL.md` step 5.
++21 words total, all three guardrails intact.
+
+---
+
+## Final state — 2026-08-28
+
+**One decision remains open: items 56/57 (`progress.md` entry types).** It was listed as one of five
+open topics; the author ruled on 21, 29, 34 and 66 and did not address this one. Recorded here rather
+than assumed closed — twice in this session I asserted something I had not verified, so the tally
+below is produced by scanning the headers, and items 1-20 count as agreed because they sit under
+session 1's `## Agreed` heading rather than carrying an inline marker.
+
+| Outcome | Count | Items |
+|---|---|---|
+| agreed | 63 | 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24, 26, 27, 28, 29, 30, 31, 34, 36, 37, 38, 39, 40, 41, 42, 44, 45, 46, 47, 48, 50, 52, 53, 54, 55, 58, 59, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 73, 74, 75 |
+| resolved by another item | 3 | 22, 25, 32 |
+| withdrawn | 2 | 60, 72 |
+| informational (no change) | 5 | 33, 35, 43, 49, 51 |
+| OPEN | 2 | 56, 57 |
+
+**Total: 75 items — 63 agreed, 2 open.**
+
+### The one open decision: 56/57 — `progress.md` entry types
+
+`worker.md` Step 4 permits only completion entries: *"Append an entry the moment a unit of work is
+genuinely finished… Not when you are about to start one."* The author was unconvinced by my defence of
+that ban and parked it. The corpus supports the author: TASK-044's predecessor wrote a start entry in
+defiance of the rule — *"Starting implementation: schema/domain first, then broker seams, then
+BracketOrderManager resolution + submitEngineExit, then SignalExecutor, then tests, then docs"* — and
+then died, handing its successor the intended order. Workers also already write a third unsanctioned
+kind: TASK-044's *"FOREIGN EDIT observed at 03:21 … adopting, will re-verify; NOT reverting."*
+
+- **A (recommended)** — labelled types, one word per line: `DONE` (today's contract, unchanged),
+  `START` (safe *because* labelled — a successor can never mistake it for a landing, which was my only
+  real objection), `NOTE` (anomalies: foreign edits, sibling sessions, blocked-on-X).
+- **B** — keep milestone-only. Costs the intent signal in exactly the death case the file exists for.
+- **C** — milestone-only plus `NOTE`. Captures the concurrency observations without reopening the
+  start-entry question.
+
+**Withdrawn or reversed on measurement, not argument** — preserved because each was a proposal the
+corpus refuted:
+
+- **60** — the unaccounted-changes sweep would flag sibling sessions. It never has; every report names
+  the task's own inputs.
+- **72** — enforce `plan.md`'s 50-150 budget. 43 of 47 plans contain zero code blocks, the longest
+  (559 lines) had zero CODE Criticals, and length tracks difficulty rather than defects.
+- **47's original premise** — a conflict with `docs/AUTONOMOUS_RUNS.md`'s eligibility rules. That
+  document is a work in progress from this same session, not evidence of practice. The item survived
+  on a different, internal argument.
+- **56** — my rejection of start entries, reopened after the author declined it.
+- **59 option C** and **67's original wording** — both assumed a `## Behavior` section only 8 of 34
+  specs have. Fixed by item 75's template.
+
+**Recommendation reversed by data:** session 1 ranked an adjudicator first for the Reviewer-error
+gate; the measured base rate (3 re-assertions in the corpus, 2 of 49 tasks) inverted it to the
+evidence floor alone (items 4/65).
+
+**Sequencing constraints the Spec must respect:**
+
+1. **Item 7 (delete the `dispatched:` archaeology) lands with item 21 (Phase-0 dispatch).** Three of
+   seven Orchestrators used that legacy key as their only channel for the action string; removing the
+   "strip it" instruction first would let stale keys survive into reviews.
+2. **Item 2 (the `[DONE]` flip) touches four sites**, including `roadmap-spec.md:48-50`, the one that
+   reads as normative. Fixing `reviewer.md` alone relocates the contradiction.
+3. **Items 28/36/38/54 (timestamps) touch four sites** and must all land before `SKILL.md`'s
+   self-reported-timestamp caveat is deleted.
+4. **Item 47 (delete Worker self-selection) lands with the `SKILL.md` mode-table edit**, or the skill
+   advertises an entry point its protocol file refuses.
+5. **Item 75 (spec template) precedes item 67 (spec scope)**, which is worded against its sections.
+6. **Item 66 (exercise the fan-out) comes after item 67**, which is what makes a genuine fork
+   reachable.
