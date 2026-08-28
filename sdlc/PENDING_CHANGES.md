@@ -420,7 +420,7 @@ up front only so a container death cannot lose it again. Numbering continues fro
 
 ## Recommended / open — not yet walked with the author
 
-### 21. Phase 0's first dispatch contradicts the Reviewer's own start-up guard *(open)*
+### 21. Phase 0's first dispatch contradicts the Reviewer's own start-up guard *(agreed — option A, ratify the observed behaviour)*
 `SKILL.md` step 2a makes a **Reviewer** the first agent on a spec-governed task, before any Worker
 has run. But:
 - `reviewer.md` Step 0.3: find a task dir "whose `status.md` says `AWAITING_REVIEW`".
@@ -550,7 +550,7 @@ ends in `:00` seconds, and TASK-032's `DONE` claims `12:05` against review files
 Propagate the mandate to `reviewer.md` and to the Orchestrator's `dispatched.md` before deleting the
 caveat — otherwise item 11 deletes a warning that is still accurate for two of the three roles.
 
-### 29. The Reviewer has no crash story *(open)*
+### 29. The Reviewer has no crash story *(agreed — option A, idempotent review-file write)*
 `worker.md` Step 4 gives the Worker `progress.md` and an explicit "your session can end without
 warning". `reviewer.md` has no equivalent. Concretely: a Reviewer killed *after* writing
 `review-round-N.md` but *before* rewriting `status.md` leaves `AWAITING_REVIEW` on disk. The
@@ -586,7 +586,7 @@ gate-time render of decisions *not yet made*, the Worker's section is the durabl
 The terminal artifact exists in **45 of 47** task dirs (`summary.md` × 41 before the rename,
 `handoff.md` × 4 after). A run digest assembled from them has near-complete source coverage.
 
-### 34. `/verify` carry-forward is an undocumented carve-out agents invented *(recommended)*
+### 34. `/verify` carry-forward is an undocumented carve-out agents invented *(open — detail below)*
 `review-code.md`: "A green `/verify` is a **precondition for approval** — any failure here is finding
 #1, Critical." `SKILL.md` step 5: the Orchestrator confirms `handoff.md` records a green `/verify`
 and refuses to commit without it. Measured: **21 of 25** CODE Reviewers exercised the runtime surface
@@ -1791,3 +1791,107 @@ happened in the corpus), item **72** (the plan-length budget — the author's ob
 **22** was narrowed by the author's ROADMAP-link explanation before being resolved outright.
 
 **Everything else is agreed.** The list is ready to become a Spec once the five above are settled.
+
+### 34 (expanded) — exactly what the protocol forbids, and what the three Reviewers did
+
+**The rule, verbatim** (`review-code.md:1-11`):
+
+> **First, prove the change actually runs.** Do not take the plan's "tests pass" on faith — you are
+> the independent check, so run it yourself. Run every test suite the change can affect… Then run
+> `/verify` to exercise the change through its real runtime surface.
+>
+> **A green `/verify` is a precondition for approval** — any failure here is finding #1, Critical.
+
+And `SKILL.md` step 5: *"confirm `handoff.md` has a `## Verification` section recording a green
+`/verify`. If that evidence is missing, the approval is incomplete: do not commit."*
+
+So the letter of the rule is: **the approving Reviewer runs `/verify` itself, in the round it
+approves.** Nothing licenses reusing an earlier round's run.
+
+**An important narrowing before judging the three.** All 25 CODE Reviewers ran the **full test suite**
+in their own round — that part was never skipped. What the three carried forward was only the runtime
+`/verify` exercise. And the rule's stated *rationale* is "do not take the plan's 'tests pass' on
+faith — you are the independent check". Reusing **your own** prior green is not taking the Worker's
+word. The three violated the letter, not the spirit, which is probably why three capable Reviewers
+independently did the same thing.
+
+**The three, verbatim:**
+
+1. **TASK-028 CODE round 2** — *"`/verify` deliberately not re-run, per the narrow-delta scope. Round
+   1's `/verify` covered the live Ktor surface (contained tick failures across three ticks,
+   kill-switch stickiness over 2.5 minutes, the reset watermark, the 403 off-happy-path probe) and the
+   `BacktestCli` surface… The delta touches one catch clause on a pure failure-recovery path plus
+   three Markdown files; it cannot change any behavior those runs exercised."*
+2. **B15-live CODE round 2** — *"`/verify` … was run green in round 1 and is carried forward: the
+   round-1 fixes touched sync/discovery logic and tests only — no drivable boot/validation surface
+   changed — so a re-run was judged unnecessary."*
+3. **TASK-037 CODE round 5** — the strongest, and it contains its own better rule:
+   *"**`/verify`:** not re-run, and deliberately so. The round-1 CODE review ran three independent
+   real-surface probes… **No compiled artifact changed this round — proven above from mtimes and the
+   diff, not taken from the Worker's word** — so that evidence still describes the shipped binary.
+   **If this round had touched any `.kt`/`.xml`/`.kts` file the probes would have had to be
+   repeated.**"*
+
+**Proposed codification — lift TASK-037's test, because it is mechanical.** "Narrow delta" (cases 1
+and 2) is a judgment call and would license drift. "No compiled artifact changed" is checkable:
+
+- **The test:** if the round's diff touches any file that enters the built binary — source,
+  resources, build scripts — the Reviewer re-runs `/verify`. A round whose diff is docs, comments and
+  review artifacts only may carry forward.
+- **Guardrail 1:** `## Verification` must name **which round** produced the green and state the test
+  that licensed the carry-forward, e.g. *"carried forward from CODE round 1; this round's diff is
+  three Markdown files, no compiled artifact."*
+- **Guardrail 2:** the Orchestrator's commit gate then has something mechanical to read — it checks
+  that a round is named, not that prose sounds convincing. It still never reads a diff.
+- **Guardrail 3:** the full test suite is **never** carried forward. 25 of 25 already re-run it; the
+  carve-out is only for the runtime exercise.
+
+Options remain: **A (recommended)** codify as above; **B** forbid carry-forward outright — costs a
+runtime re-run on docs-only rounds and makes three sound approvals retroactively wrong; **C** nothing.
+
+### 66 (expanded) — the fan-out, and why item 67 makes this live
+
+**The mandate, verbatim** (`worker-plan.md:7-27`):
+
+> Most roadmap tasks extend an existing pattern and have one clearly-correct approach… **Fan out only
+> when the task genuinely admits multiple viable architectures with real tradeoffs**… If you can't
+> articulate a second defensible approach in one sentence, there's no fork — don't manufacture one.
+>
+> When it does fork, spawn three `Plan`-type agents in parallel (one message, three `Agent` calls),
+> each given the same task context but a different mandate: **Minimal changes** … **Clean
+> architecture** … **Pragmatic balance** …
+>
+> Each returns its own design sketch and tradeoffs. Compare them against this task's actual
+> constraints… pick the one that fits best — or a hybrid that grafts a specific idea from a runner-up
+> onto the winner — and say why.
+
+**It has never executed.** Zero `Plan`-type spawns in the entire corpus; every recorded
+`subagent_type` is `general-purpose` (127) or `claude-code-guide` (2). Of the 18 sessions carrying the
+three mandates in context, 16 spawned nothing and 2 spawned exactly one agent.
+
+**The gate is working, not being ignored** — three Workers recorded declining it, and all three give
+the *same* reason: the spec had already fixed the design. TASK-030 *"admits no second architecture"*;
+TASK-032 *"the spec pins the site"*; TASK-038 *"the spec fixes the seam, constants, wiring source and
+guard shape"*.
+
+**Why agreed item 67 changes this.** 67 stops specs from pinning implementation. The three declines
+are all downstream of exactly that pinning, so removing it removes the reason the fork never appears.
+PLAN starts arriving with real architectural choices — and a branch that has never run once starts
+running. Untested: the three-way parallel spawn, the comparison step, and how the chosen approach
+reaches `## Approach`'s "Alternatives you considered".
+
+**Options and what each costs:**
+
+- **A — leave it; first exercise is on a real task.** Bounded downside: worst case is a poor plan,
+  which the PLAN Reviewer catches (that is what the phase is for). Token cost when it fires is real —
+  three parallel Plan agents against a Worker-PLAN baseline of ~32 tool calls each, so roughly 100
+  extra tool calls on a forked task.
+- **B (recommended, changed from my earlier C) — exercise it deliberately once.** Same information as
+  A, strictly safer, and it resolves the question with evidence instead of by amputation. Cost: one
+  chosen task.
+- **C — simplify to a single-agent "name and reject one defensible alternative".** Cheapest and it
+  matches what the three declining Workers already did in prose. **What is lost:** genuine parallel
+  exploration is the mechanism's whole value proposition — three independent agents can surface an
+  approach the single Worker would not have thought of — and that value has never been measured
+  because the branch never ran. C forecloses it permanently, at precisely the moment item 67 makes
+  architectural choice available again. That timing is what changed my recommendation.
