@@ -2031,7 +2031,7 @@ evidence floor alone (items 4/65).
 
 ## Spec-drafting decisions (2026-08-27)
 
-### 76. Review scope is the manifest alone; the Impact Map is a completeness checklist *(supersedes the "union" wording in item 69)*
+### 76. Review scope is the manifest alone; the Impact Map is a completeness checklist *(agreed — supersedes the "union" wording in item 69)*
 The author challenged the union. **They are right and "union" was the wrong word** — you cannot
 *review* a file that has no diff. The two artifacts answer different questions and only one of them is
 a review scope:
@@ -2058,7 +2058,7 @@ neither.
 commit time — 251 median lines down to ~15. The map survives for two readers only: the PLAN Reviewer,
 who reviews it as intent, and the CODE Reviewer, who checks it for absences.
 
-### 77. Self-hosting the rewrite — the hazard is uncommitted protocol text governing live agents *(recommended)*
+### 77. Self-hosting the rewrite — the hazard is uncommitted protocol text governing live agents *(agreed — M5 + M7)*
 The rewrite runs through the pipeline it is rewriting. Three exposures, only one of them sharp:
 
 1. **Across tasks (benign, and intended).** Task N commits protocol edits; task N+1 runs under them.
@@ -2082,7 +2082,7 @@ The rewrite runs through the pipeline it is rewriting. Three exposures, only one
 
 M5 + M7 together are two sentences and leave exposure 1, which is the desired behaviour.
 
-### 78. Task breakdown — multiple tasks, one Orchestrator, in a row *(author's decision on assumption 2)*
+### 78. Task breakdown — multiple tasks, one Orchestrator, in a row *(agreed — author's decision on assumption 2)*
 Eight tasks, ordered so the six sequencing constraints hold and so each task exercises the rules its
 predecessors installed:
 
@@ -2104,7 +2104,7 @@ T9 runs under all of it. The corollary is that **T1 and T2 carry the most risk**
 degrades every subsequent task's pipeline rather than only its own output. Worth running T1 and T2
 attended, and the rest unattended.
 
-### 79. "Later tasks test earlier ones" is only true for LOUD failures *(the author found the hole)*
+### 79. "Later tasks test earlier ones" is only true for LOUD failures *(agreed — per-task post-conditions)*
 My framing assumed a protocol regression would announce itself. Classifying T1's plausible defects by
 what the Orchestrator would actually see during T3:
 
@@ -2149,7 +2149,7 @@ Each is a one-line check and each converts a silent failure into a loud one.
   `[PENDING]`, then run the remediation task. Rounds already spent stay spent; the re-review of
   affected tasks starts a fresh phase round.
 
-### 80. In-place vs a submodule branch — reconsidered properly *(recommended: in-place, with guards)*
+### 80. In-place vs a submodule branch — reconsidered properly *(agreed — in-place with the five guards)*
 The author asked me to reconsider rather than defend. The serious version of the proposal is not a
 copy — it is a **second worktree of the submodule** on a rewrite branch, with the live
 `.agents/skills/` checkout pinned at the pre-run SHA and one `checkout`/`merge` as the swap. Git
@@ -2188,3 +2188,17 @@ location, which is right in both.
 
 **Where I would switch to the branch:** if T1 or T2 has to be run unattended, or if the run is
 extended to changes that are not doc edits.
+
+---
+
+## Approved — 2026-09-05
+
+The author approved the Spec. All 80 items are settled: **70 agreed, 3 resolved by another item,
+2 withdrawn on measurement, 5 informational.** Nothing is open.
+
+Delivery: `spec/spec-20260905-sdlc-skill-hardening.md` in the Ricci repo, implemented as
+**TASK-051 through TASK-059**, run sequentially under one Orchestrator, in place, with the five
+guards from item 80 as conditions. TASK-051 and TASK-052 run attended.
+
+This file is the evidence record behind that Spec and is named in its Impact Map. It is no longer a
+working document — further changes belong in the tasks.
