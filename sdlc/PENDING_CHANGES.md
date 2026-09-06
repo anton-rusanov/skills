@@ -1133,7 +1133,7 @@ Two smaller notes in the same list:
   strip. It is guarded ("if the project mandates `BigDecimal`"), so it is defensible — but it belongs
   next to the other domain rules in `worker-code.md`, not in the cross-phase list.
 
-### 56. A `progress.md` heartbeat line — parked, author unconvinced *(open — NOT consensus)*
+### 56. A `progress.md` heartbeat line — parked, author unconvinced *(agreed — superseded by item 57's labelled types)*
 Recording so it is not re-proposed. Step 4 deliberately forbids writing an entry when a unit of work
 *starts*, which is what produced the TASK-044 false death: the Orchestrator read ~1h of silence as a
 dead Worker and dispatched a second one onto the same tree.
@@ -1152,7 +1152,7 @@ Happy to leave it alone for now." Parked, not settled — and the corpus support
 skepticism more than my rejection did. See item 57: Workers already write start-shaped entries, the
 protocol notwithstanding, and one of them was written by the predecessor in a real death case.
 
-### 57. `progress.md` needs entry *types*, not more detail *(open — answers the author's question)*
+### 57. `progress.md` needs entry *types*, not more detail *(agreed — labelled DONE / START / NOTE)*
 The author asked whether `progress.md` should be more detailed. The corpus says detail is the wrong
 axis.
 
@@ -2103,3 +2103,88 @@ round counting, so T2 onwards run under them — every later task is a live test
 T9 runs under all of it. The corollary is that **T1 and T2 carry the most risk**: a defect there
 degrades every subsequent task's pipeline rather than only its own output. Worth running T1 and T2
 attended, and the rest unattended.
+
+### 79. "Later tasks test earlier ones" is only true for LOUD failures *(the author found the hole)*
+My framing assumed a protocol regression would announce itself. Classifying T1's plausible defects by
+what the Orchestrator would actually see during T3:
+
+| T1 defect | Symptom in a later task | Noticed today? |
+|---|---|---|
+| Review-file read-list not updated with the write-name | Round-2 Reviewer reads **no** previous findings and reviews as if round 1 never happened | **No — silent.** Orchestrator sees a normal `NEEDS_FIXES` |
+| Round counting wrong | `MAX_ROUNDS_EXCEEDED` fires early; task blocks | Loud, but **misattributed** ("hard task") unless someone compares round to the file count |
+| `MaxRounds` not passed to the Reviewer | Reviewer self-blocks one round early | Loud; checkable by comparing `status.md` round against the configured cap |
+| `[DONE]` flip left in two places | Duplicate flip | Benign |
+| `[DONE]` flip left in none | Task never marked done | Loud at commit |
+
+**The silent row is the whole problem**, and it is the same class as the death-detection bug that ran
+undetected for months precisely because a dead subagent looked like a clean finish. A protocol
+regression produces a *plausible* run, not a broken one.
+
+**Detection — each task needs a post-condition on pipeline behaviour, not only on its own diff.**
+Cheap greps over the *next* task's artifacts, checked by the Orchestrator before dispatching it:
+
+- after T1: the next task's directory contains phase-named review files and no bare
+  `review-round-N.md`; every `status.md` round is ≤ the count of that phase's review files; exactly one
+  commit flips the heading to `[DONE]`.
+- after T3: every timestamp written in the next task's directory carries `Z` and sits within a few
+  minutes of the file's mtime.
+- after T5: `changed-files.md` exists and its path set equals the set staged in that task's commit.
+
+Each is a one-line check and each converts a silent failure into a loud one.
+
+**Remediation — stop and escalate; never fix forward.**
+
+- **Rejected: fix forward inside the live task's round.** It puts an unplanned protocol change inside
+  another task's scope, and that task's Reviewer would be judging an edit it has no plan for — the
+  scope-creep rule exists for exactly this.
+- **Rejected: revert everything and re-run.** Later tasks' edits are independent and committed;
+  reverting T1 does not undo them. What is suspect is not their *output* but whether they were
+  *correctly executed* under the broken rule.
+- **Recommended: halt, remediate in a dedicated task, then re-REVIEW (not re-implement) the tasks that
+  ran under the defect.** A run whose own protocol is broken is precisely the
+  `BLOCKED` / `NEEDS_HUMAN_DECISION` condition the skill already defines. The Orchestrator must not
+  self-heal.
+- **In-flight handling:** let the live subagent finish rather than killing it (item 18 puts destructive
+  actions last), record the halt under `## Interruptions`, revert the in-flight task's heading to
+  `[PENDING]`, then run the remediation task. Rounds already spent stay spent; the re-review of
+  affected tasks starts a fresh phase round.
+
+### 80. In-place vs a submodule branch — reconsidered properly *(recommended: in-place, with guards)*
+The author asked me to reconsider rather than defend. The serious version of the proposal is not a
+copy — it is a **second worktree of the submodule** on a rewrite branch, with the live
+`.agents/skills/` checkout pinned at the pre-run SHA and one `checkout`/`merge` as the swap. Git
+handles the paths, and the docs' self-references stay correct because they name the *deployed*
+location, which is right in both.
+
+| | In-place | Branch worktree |
+|---|---|---|
+| Silent-defect detection | **8 live tests, one per task, each with a named cause** | **1 test (T9), 8 tasks' changes tangled together** |
+| Blast radius of a T1 defect | T2-T8 run under it | Contained; T2-T8 unaffected |
+| Remediation | Halt + dedicated task + re-review (item 79) | Branch fixup, no live protocol surgery, no in-flight lock complications |
+| Exposure 3 (Reviewer governed by unreviewed text) | Needs mechanism M5 | **Solved by construction** — one fewer rule |
+| Revert the whole run | Per-task revert | One submodule checkout |
+| Setup cost | None | Worktree, Impact Map paths point at it, a swap step, and `/verify` needs the swap first |
+
+**Recommendation: in-place, guarded.** Three reasons:
+
+1. **The branch's containment argument is weaker than it looks.** A protocol defect does not corrupt
+   anything — it makes a task run *badly* (under-reviewed diff, wasted round, false block). Every code
+   change here is a reviewed doc edit. The worst case is re-reviewing a task, which is item 79's
+   remediation either way.
+2. **The dogfooding is not a bonus, it is the only detector.** Under branch mode a silent T1 defect is
+   caught by nothing until T9, where eight tasks' changes are entangled and attribution is hardest.
+   In-place, T2 catches it with a named cause. The author's own question — *how will we know something
+   failed?* — is answered better by the option that runs the new rules eight times.
+3. **Risk is concentrated, not spread.** T1 and T2 hold nearly all of it, and they are already planned
+   as **attended**. A human watching the two riskiest runs beats structural isolation of all nine.
+
+**Guards that make in-place safe** — the price of this recommendation:
+
+- item 79's per-task post-condition checks, converting silent to loud;
+- a tag on each task's submodule commit, so revert points are clean;
+- T1 and T2 run attended;
+- mechanisms M5 and M7 from item 77;
+- halt-and-escalate on any post-condition failure — the Orchestrator never self-heals.
+
+**Where I would switch to the branch:** if T1 or T2 has to be run unattended, or if the run is
+extended to changes that are not doc edits.
